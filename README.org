@@ -1,0 +1,725 @@
+#+title: Arch deploy script
+#+author: justAlex0
+#+PROPERTY: header-args :tangle arch-deploy.bash
+#+auto_tangle: t
+
+Yet another simple script for automated installation of Arch Linux.
+
+This script basically follows the official Installation Guide from ArchWiki but with some additions.
+
+This ~README.org~ may help those who install Arch manually or make their own script.
+
+*** Disclaimer
+It's not really suited to be used for public, since there's a nicer tool called ~archinstall~. I made this script as a tool that suits my needs and deploys the OS with my setup and configs.
+Though I hope somebody find in here something helpfull.
+
+~README.org~ was made with Emacs and Org Mode that takes the code blocks from ~README.org~ and writes them into ~arch-deploy.bash~ file. So below is the code itself placed in a categorized model with extra documentation.
+
+* Installation
+Most likely Arch image doesn't ship ~git~ so it needs to be installed first.
+#+begin_src sh :tangle no
+pacman -Sy git
+#+end_src
+Then clone the repository and execute the script.
+#+begin_src sh :tangle no
+git clone https://gitlab.com/justAlex0/arch-deploy.git
+#+end_src
+Or put it on a USB stick and use it from there.
+
+* Usage
+Open the script and change default variables on the top in [[#user-defined-variables][User-defined variables]] section.
+#+begin_src sh :tangle no
+vim arch-deploy/arch-deploy.bash
+#+end_src
+To begin the installation you need to specify the drive.
+#+begin_src sh :tangle no
+./arch-deploy/arch-deploy.bash /dev/sda
+#+end_src
+Also you might want to write all the output to a file in case of debugging.
+#+begin_src sh :tangle no
+./arch-deploy/arch-deploy.bash /dev/sda 2>&1 | tee log.txt
+#+end_src
+
+It can install Arch with GRUB/Unified kernel image and non-\/encrypted root partition /(dm-crypt with LUKS)/
+
+* Table of Contents :TOC:
+- [[#installation][Installation]]
+- [[#usage][Usage]]
+- [[#user-defined-variables][User-defined variables]]
+- [[#script-defined-variables][Script-defined variables]]
+- [[#miscellaneous-functions][Miscellaneous Functions]]
+  - [[#print-help][Print Help]]
+  - [[#output-log][Output log]]
+  - [[#get-the-names-of-partition-parts][Get the Names of Partition Parts]]
+  - [[#output-summary][Output Summary]]
+  - [[#choose-bootloader][Choose Bootloader]]
+  - [[#hardwares-checks][Hardwares Checks]]
+- [[#drive-partitioning][Drive Partitioning]]
+  - [[#partition-the-drive][Partition the Drive]]
+  - [[#non-crypt][Non-Crypt]]
+  - [[#crypt][Crypt]]
+- [[#deploying-functions][Deploying Functions]]
+  - [[#configuring-localtime][Configuring localtime]]
+  - [[#configuring-localization][Configuring localization]]
+  - [[#network-configuration][Network configuration]]
+  - [[#apparmor-enabling][AppArmor enabling]]
+  - [[#users-and-passwords][Users and Passwords]]
+  - [[#creating-a-swap-file][Creating a Swap File]]
+  - [[#generating-initramfs-images][Generating initramfs images]]
+  - [[#cloning-personal-dot-files][Cloning personal dot-files]]
+  - [[#unmount][Unmount]]
+  - [[#check-if-any-errors-acquired][Check if any errors acquired]]
+- [[#begin-deploying][Begin Deploying]]
+- [[#choosing-installation-step][Choosing Installation Step]]
+- [[#todos-02][TODOs]]
+
+* User-defined variables
+These variables the user needs to change
+#+begin_src sh :shebang #!/usr/bin/env bash :eval no
+##################################################### User-defined variables
+ROOT_PASSWORD="root"
+# If empty the user will not be created
+USER="alex"
+# If empty the password will not be created
+USER_PASSWORD=""
+
+HOST_NAME="arch"
+
+# What group of packages to install
+# Options: full | minimal
+SETUP="minimal"
+
+# What Display server and corresponding desktop utils to install
+# Only works if SETUP == "full"
+# Options: X | Wayland
+# FIXME wayland is experimantal cuz it doesn't work well with my nvidia
+DISPLAY_SERVER="X"
+
+# Bootloader:
+# Options: grub | UKI (Unified kernel image)
+# If empty the Bootloader will not be installed
+BOOTLOADER="UKI"
+
+# If empty timezone will not be set
+# It appends path to /usr/share/zoneinfo/ to symlink with /etc/localtime
+TIMEZONE="Europe/Berlin"
+
+# Will be used by reflector
+MIRRORLIST="Germany,Netherlands,Poland"
+
+# Will create a swap file in the root directory
+ENABLE_SWAP_FILE="no"
+SWAP_FILE_SIZE=16 # GiB
+
+# dm-crypt with LUKS
+ENABLE_FULL_DRIVE_ENCRYPTION="no"
+PASSPHRASE_FOR_ENCRYPTION=""
+
+# Will prefer package cache on the host
+IS_INSTALLING_FROM_EXISTING_ARCH="no"
+
+# At the end of installation it will be used for cloning the provided repo
+# and installing its content through GNU util "stow"
+# If empty this will be ignored
+GITCLONE="https://gitlab.com/justAlex0/dot-files"
+############################################################################
+#+end_src
+
+* Script-defined variables
+These are global variables
+#+begin_src sh :eval no
+SCRIPT_PATH=$(readlink -f "$0")
+SCRIPT_NAME=$(basename "$SCRIPT_PATH")
+SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+
+DRIVE="$1"
+
+ESP="/boot/efi"
+
+DRIVES=$(lsblk --nodeps --noheadings --paths --raw --output NAME)
+
+BOLD=$(tput bold)
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BLUE=$(tput setaf 4)
+ESC=$(tput sgr0)
+
+readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR DRIVE ESP DRIVES
+readonly BOLD RED GREEN YELLOW BLUE ESC
+declare -a PACSTRAP_OPTIONS PKG AUR_PKG MODULES KERNEL_PARAMS
+
+source "$SCRIPT_DIR"/.package-list.bash
+#+end_src
+
+* Miscellaneous Functions
+** Print Help
+#+begin_src sh :eval no
+usage ()
+{
+    echo -e "${YELLOW}Usage:${ESC}
+./$SCRIPT_NAME <drive> [OPTIONS]
+[OPTIONS]
+    -s init|boot    Specify the stage of installing.
+                    default: init
+"
+}
+#+end_src
+
+** Output log
+#+begin_src sh :eval no
+log ()
+{
+    case "$2" in
+        "err")
+            printf "[log] ${BOLD}${RED}[%s]${ESC}\n" "$1"
+            ;;
+        *)
+            printf "[log] ${BOLD}${YELLOW}[%s]${ESC}\n" "$1"
+            ;;
+    esac
+}
+#+end_src
+
+** Get the Names of Partition Parts
+This extends sda to sda1 and sda2, nvme0n1 to nvme0n1p1 and nvme0n1p2 and will be used next by [[#drive-partitioning][Drive Partitioning]] and during bootloader's installation.
+#+begin_src sh :eval no
+if echo "$DRIVES" | grep -x "$DRIVE" &> /dev/null; then
+    case $DRIVE in
+        *"sd"* | *"vd"* )
+            P1="1"
+            P2="2"
+            #P3="3"
+            ;;
+        *"nvme"* )
+            P1="p1"
+            P2="p2"
+            #P3="p3"
+            ;;
+        * )
+            log "Only HDD or SSD. Aborting." err
+            usage
+            exit 1
+            ;;
+    esac
+    readonly P1 P2
+else
+    log "Wrong \"$1\" drive. Aborting." err
+    usage
+    exit 1
+fi
+#+end_src
+
+** Output Summary
+#+begin_src sh :eval no
+summary ()
+{
+    if ! check-uefi; then
+        if [[ "$BOOTLOADER" != "grub" ]]; then
+            log "UEFI is not supported." err
+            log "Grub will be installed instead."
+            BOOTLOADER="grub"
+            [ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ] && log "BIOS + grub + full drive encryption is not supported in this script because I personally would never use this combination and so I didnt want to spend more time on it" err && exit 1
+        fi
+    fi
+    if [[ -z "$TIMEZONE" ]]; then
+        log "Timezone is not provided. \"UTC\" will be used." err
+        TIMEZONE="UTC"
+    fi
+
+    echo "Summary:"
+    echo "                       Drive: [${BOLD}${YELLOW}${DRIVE}${ESC}]"
+    echo "                        User: [${YELLOW}${USER}${ESC}]"
+    echo "                   Host name: [${YELLOW}${HOST_NAME}${ESC}]"
+    echo "               Root password: [${YELLOW}${ROOT_PASSWORD}${ESC}]"
+    echo "               User password: [${YELLOW}${USER_PASSWORD}${ESC}]"
+    echo "                       Setup: [${YELLOW}${SETUP}${ESC}]"
+    echo "              Display Server: [${YELLOW}${DISPLAY_SERVER}${ESC}]"
+    echo "                  Bootloader: [${YELLOW}${BOOTLOADER}${ESC}]"
+    echo "                    Timezone: [${YELLOW}${TIMEZONE}${ESC}]"
+    echo "                  Mirrorlist: [${YELLOW}${MIRRORLIST}${ESC}]"
+    echo "            Enable swap file: [${YELLOW}${ENABLE_SWAP_FILE}${ESC}]"
+    echo "              Swap file size: [${YELLOW}${SWAP_FILE_SIZE}${ESC}]"
+    echo "Enable full drive encryption: [${YELLOW}${ENABLE_FULL_DRIVE_ENCRYPTION}${ESC}]"
+    echo "   Passphrase for encryption: [${YELLOW}${PASSPHRASE_FOR_ENCRYPTION}${ESC}]"
+    echo "         Repository to clone: [${YELLOW}${GITCLONE}${ESC}]"
+
+    [ -z "$ROOT_PASSWORD" ] && log "Root password is a must." err && exit 1
+    [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" && -z "$PASSPHRASE_FOR_ENCRYPTION" ]] && log "Passphrase for drive encryption is a must." err && exit 1
+
+    local answer
+    read -rp "Continue? y/n " answer
+    [ "$answer" == "y" ] || exit 1
+
+    readonly DRIVE USER HOST_NAME ROOT_PASSWORD USER_PASSWORD SETUP BOOTLOADER TIMEZONE MIRRORLIST
+    readonly ENABLE_SWAP_FILE SWAP_FILE_SIZE ENABLE_FULL_DRIVE_ENCRYPTION PASSPHRASE_FOR_ENCRYPTION
+    readonly GITCLONE
+}
+#+end_src
+
+** Choose Bootloader
+#+begin_src sh :eval no
+source "$SCRIPT_DIR"/.bootloaders.bash
+deploy-bootloader ()
+{
+    if [[ -n "$BOOTLOADER" ]]; then
+        case "$BOOTLOADER" in
+            "grub")
+                bootloader-grub
+                ;;
+            "UKI")
+                bootloader-unified-kernel-image
+                ;;
+        esac
+    fi
+}
+#+end_src
+
+** Hardwares Checks
+*** Check UEFI
+#+begin_src sh :eval no
+check-uefi ()
+{
+    [ -d /sys/firmware/efi/ ]
+}
+#+end_src
+
+*** Check CPU
+#+begin_src sh :eval no
+check-cpu ()
+{
+    local CPU_VENDOR
+    CPU_VENDOR=$(awk -F ": " '/vendor_id/ {print $NF; exit}' /proc/cpuinfo)
+    case "$CPU_VENDOR" in
+        "GenuineIntel" )
+            PKG+=(intel-ucode)
+            ;;
+        "AuthenticAMD" )
+            PKG+=(amd-ucode)
+            ;;
+    esac
+}
+#+end_src
+
+*** Check GPU
+#+begin_src sh :eval no
+check-gpu ()
+{
+    local GRAPHICS
+    GRAPHICS=$(lspci -v | grep -A1 -e VGA -e 3D)
+    case ${GRAPHICS^^} in
+        ,*NVIDIA* )
+            PKG+=(linux-headers)
+            [[ "$SETUP" == "full" ]] && PKG+=(linux-zen-headers)
+            PKG+=(nvidia-dkms nvidia-utils nvidia-settings)
+            PKG+=(vulkan-icd-loader)
+            PKG+=(nvtop)
+            MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
+            ;;
+        ,*AMD* | *ATI* )
+            PKG+=(xf86-video-amdgpu xf86-video-ati libva-mesa-driver vulkan-radeon)
+            PKG+=(vulkan-icd-loader)
+            PKG+=(nvtop)
+            ;;
+        ,*INTEL* )
+            PKG+=(libva-intel-driver intel-media-driver vulkan-intel)
+            PKG+=(vulkan-icd-loader)
+            ;;
+    esac
+}
+#+end_src
+Reference:
+- [[https://wiki.archlinux.org/title/NVIDIA/Tips_and_tricks#Kernel_module_parameters][Arch Wiki: NVIDIA/Kernel module parameters]]
+
+* Drive Partitioning
+** Partition the Drive
+#+begin_src sh :eval no
+partitioning ()
+{
+    trap "readonly PARTITIONING_STATUS=error" ERR
+    log "Partitioning the drive"
+
+    log "Clearing existing partition tables"
+    sgdisk "$DRIVE" -Z
+    if check-uefi; then
+        log "Partitioning 256M for EFI and the rest for Linux"
+        sgdisk "$DRIVE" --align-end --new=1:0:+256M --typecode=1:ef00 --largest-new=2
+    else
+        log "Partitioning 256M for BIOS and the rest for Linux"
+        sgdisk "$DRIVE" --align-end --new=1:0:+256M --typecode=1:ef02 --largest-new=2
+    fi
+    log "Partition table:"
+    sgdisk "$DRIVE" -p
+
+    [ "$PARTITIONING_STATUS" == "error" ] && log "Errors acquired during Partitioning the drive." err && exit 1
+}
+#+end_src
+
+** Non-Crypt
+*** Format and Mount the Partitions
+#+begin_src sh :eval no
+formatting ()
+{
+    trap "readonly FORMATTING_STATUS=error" ERR
+    log "Formatting the partitions (non-crypt)"
+    yes | mkfs.fat -F 32 "$DRIVE$P1"
+    yes | mkfs.ext4 "$DRIVE$P2"
+
+    log "Mounting the partitions"
+    mount "$DRIVE$P2" /mnt
+    mkdir -p /mnt"$ESP"
+    mount "$DRIVE$P1" /mnt"$ESP"
+
+    [ "$FORMATTING_STATUS" == "error" ] && log "Errors acquired during Formatting the partitions (non-crypt)." err && exit 1
+}
+#+end_src
+
+** Crypt
+*** Securely wipe the drive before Partitioning and Encrypting the drive
+#+begin_src sh :eval no
+drive-preparation ()
+{
+    trap "readonly WIPING_STATUS=error" ERR
+
+    log "Creating a temporary encrypted container on the drive"
+    echo "YES" | cryptsetup open --type plain --key-file /dev/urandom "$DRIVE" to_be_wiped || exit 1
+    log "Wiping it"
+    dd if=/dev/zero of=/dev/mapper/to_be_wiped bs=1M status=progress
+    log "Closing the container"
+    cryptsetup close to_be_wiped
+
+    [ "$WIPING_STATUS" == "error" ] && log "Errors acquired during Wiping the drive." err && exit 1
+}
+#+end_src
+Reference:
+- [[https://wiki.archlinux.org/title/Dm-crypt/Drive_preparation][Arch Wiki: dm-crypt/Drive preparation]]
+
+*** Format and Mount the Partitions
+#+begin_src sh :eval no
+formatting-crypt ()
+{
+    trap "readonly FORMATTING_CRYPT_STATUS=error" ERR
+    log "Formatting the partitions (crypt)"
+
+    yes | mkfs.fat -F 32 "$DRIVE$P1"
+
+    log "Formatting LUKS partitions"
+    echo "$PASSPHRASE_FOR_ENCRYPTION" | cryptsetup --verbose luksFormat "$DRIVE$P2"
+    log "Unlocking/Mapping LUKS partitions with the device mapper"
+    if [[ "$DRIVE" == *"nvme"*  ]]; then
+        # See the reference
+        echo "$PASSPHRASE_FOR_ENCRYPTION" | cryptsetup --perf-no_read_workqueue --perf-no_write_workqueue --persistent open "$DRIVE$P2" root
+    else
+        echo "$PASSPHRASE_FOR_ENCRYPTION" | cryptsetup open "$DRIVE$P2" root
+    fi
+    yes | mkfs.ext4 /dev/mapper/root
+
+    log "Mounting the partitions"
+    mount /dev/mapper/root /mnt
+    mkdir -p /mnt"$ESP"
+    mount "$DRIVE$P1" /mnt"$ESP"
+
+    [ "$FORMATTING_CRYPT_STATUS" == "error" ] && log "Errors acquired during Formatting the partitions (crypt)." err && exit 1
+}
+#+end_src
+References:
+- [[https://wiki.archlinux.org/title/Dm-crypt/Device_encryption#Encrypting_devices_with_cryptsetup][Arch Wiki: Encrypting devices with cryptsetup]]
+- [[https://wiki.archlinux.org/title/Dm-crypt/Encrypting_an_entire_system#LUKS_on_a_partition][Arch Wiki: LUKS on a partition]]
+- [[https://wiki.archlinux.org/title/Dm-crypt/Specialties#Disable_workqueue_for_increased_solid_state_drive_(SSD)_performance][Arch Wiki: Disable workqueue for increased solid state drive (SSD) performance]]
+
+* Deploying Functions
+** Configuring localtime
+#+begin_src sh :eval no
+deploy-localtime ()
+{
+    trap "readonly LOCALTIME_STATUS=error" ERR
+    log "Configuring localtime"
+    [ -n "$TIMEZONE" ] && arch-chroot /mnt ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime
+    arch-chroot /mnt hwclock --systohc
+}
+#+end_src
+
+** Configuring localization
+#+begin_src sh :eval no
+deploy-localization ()
+{
+    trap "readonly LOCALIZATION_STATUS=error" ERR
+    log "Configuring localization"
+    sed -Ei "s|^#en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|" /mnt/etc/locale.gen
+    arch-chroot /mnt locale-gen
+    {
+        echo "LANG=en_US.UTF-8"
+        echo "LC_ALL=en_US.UTF-8"
+    } > /mnt/etc/locale.conf
+}
+#+end_src
+
+** Network configuration
+#+begin_src sh :eval no
+deploy-network ()
+{
+    trap "readonly NETWORK_STATUS=error" ERR
+    log "Network configuration"
+    echo "$HOST_NAME" > /mnt/etc/hostname
+    {
+        echo "127.0.0.1        localhost"
+        echo "::1              localhost"
+        echo "127.0.1.1        $HOST_NAME"
+    } > /mnt/etc/hosts
+    arch-chroot /mnt systemctl enable NetworkManager.service
+    if [[ -x /mnt/usr/bin/nft ]]; then
+        arch-chroot /mnt systemctl enable nftables.service
+    fi
+}
+#+end_src
+
+** AppArmor enabling
+#+begin_src sh :eval no
+deploy-apparmor ()
+{
+    if [[ -x /mnt/usr/bin/aa-status ]]; then
+        KERNEL_PARAMS+=(lsm=landlock,lockdown,yama,integrity,apparmor,bpf)
+        arch-chroot /mnt systemctl enable apparmor.service
+    fi
+}
+#+end_src
+
+** Users and Passwords
+#+begin_src sh :eval no
+deploy-users ()
+{
+    trap "readonly USERS_STATUS=error" ERR
+    log "Setting root password"
+    arch-chroot /mnt /bin/bash -c "echo root:$ROOT_PASSWORD | chpasswd"
+
+    if [[ -n "$USER" ]]; then
+        log "Creating user $USER"
+        arch-chroot /mnt useradd --create-home --groups wheel "$USER"
+
+        if [[ -n "$USER_PASSWORD" ]]; then
+            log "Setting user password"
+            arch-chroot /mnt /bin/bash -c "echo $USER:$USER_PASSWORD | chpasswd"
+        else
+            arch-chroot /mnt passwd -d "$USER"
+        fi
+    fi
+
+    if [[ -x /mnt/usr/bin/doas ]]; then
+        log "Configuring doas"
+        {
+            echo "permit nopass root"
+            echo -e "permit :wheel\n"
+        } > /mnt/etc/doas.conf
+        arch-chroot /mnt chmod -c 0400 /mnt/etc/doas.conf
+        arch-chroot /mnt ln -sf /usr/bin/doas /usr/bin/sudo
+    else
+        sed -Ei "s|^#?%wheel ALL=(ALL:ALL) ALL|%wheel ALL=(ALL:ALL) ALL|" /mnt/etc/sudoers
+    fi
+}
+#+end_src
+
+** Creating a Swap File
+#+begin_src sh :eval no
+deploy-swap ()
+{
+    trap "readonly SWAP_STATUS=error" ERR
+    if [[ "$ENABLE_SWAP_FILE" == "yes" ]]; then
+        log "Creating a swap file"
+
+        dd if=/dev/zero of=/mnt/swapfile bs=1M count="$SWAP_FILE_SIZE"GiB status=progress
+        arch-chroot /mnt chmod 0600 /mnt/swapfile
+        arch-chroot /mnt mkswap -U clear /swapfile
+        arch-chroot /mnt swapon /swapfile
+
+        {
+            echo -e "\n#Swapfile"
+            echo "/swapfile none swap defaults 0 0"
+        } >> /mnt/etc/fstab
+
+        sed -i "s|fsck|resume fsck|" /mnt/etc/mkinitcpio.conf
+
+        # See the reference
+        SWAP_DEVICE=$(findmnt -no UUID -T /mnt/swapfile)
+        SWAP_FILE_OFFSET=$(filefrag -v /mnt/swapfile | awk '$1=="0:" {print substr($4, 1, length($4)-2)}')
+        KERNEL_PARAMS+=(resume="$SWAP_DEVICE" resume_offset="$SWAP_FILE_OFFSET")
+    fi
+}
+#+end_src
+References:
+- [[https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate][Arch Wiki: Hibernation into swap file]]
+
+** Generating initramfs images
+#+begin_src sh :eval no
+deploy-initramfs ()
+{
+    trap "readonly INITRAMFS_STATUS=error" ERR
+    log "Generating initramfs images"
+
+    # See the reference
+    {
+        echo "# Do not load watchdogs module for increasing perfomance"
+        echo "blacklist iTCO_wdt"
+    } > /mnt/etc/modprobe.d/nowatchdog.conf
+    sed -Ei 's|^#?FILES=.*|FILES=(/etc/modprobe.d/nowatchdog.conf)|' /mnt/etc/mkinitcpio.conf
+
+    if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
+        sed -i "s|filesystems|encrypt filesystems|" /mnt/etc/mkinitcpio.conf
+        MODULES+=(dm_crypt)
+    fi
+
+    [ -n "$MODULES" ] && sed -Ei "s|^MODULES=.*|MODULES=(${MODULES[*]})|" /mnt/etc/mkinitcpio.conf
+    if [[ -x /usr/bin/lz4 ]]; then
+        # because lz4 is faster
+        sed -Ei "s|^#COMPRESSION=\"lz4\"|COMPRESSION=\"lz4\"|" /mnt/etc/mkinitcpio.conf
+        sed -Ei "s|^#COMPRESSION_OPTIONS=.*|COMPRESSION_OPTIONS=(-9)|" /mnt/etc/mkinitcpio.conf
+    fi
+
+    arch-chroot /mnt mkinitcpio -p linux
+}
+#+end_src
+References:
+- [[https://wiki.archlinux.org/title/improving_performance#Watchdogs][Arch Wiki: Watchdogs]]
+
+** Cloning personal dot-files
+#+begin_src sh :eval no
+deploy-dotfiles ()
+{
+    trap "readonly DOTFILES_STATUS=error" ERR
+    if [[ -n "$GITCLONE" && -n "$USER" ]]; then
+        log "Cloning dot-files"
+        cd /mnt/home/"$USER" && git clone "$GITCLONE"
+    fi
+}
+#+end_src
+
+** Unmount
+#+begin_src sh :eval no
+deploy-unmount ()
+{
+    log "Unmounting /mnt"
+    [ "$ENABLE_SWAP_FILE" == "yes" ] && swapoff /mnt/swapfile
+    umount -R /mnt || log "Failed to umount /mnt" err
+    if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
+        log "Closing the encrypted partition"
+        cryptsetup close root || log "Failed to close the encrypted partition" err
+    fi
+}
+#+end_src
+
+** Check if any errors acquired
+#+begin_src sh :eval no
+check-errors ()
+{
+    [ "$LOCALTIME_STATUS" == "error" ] && log "Errors acquired during Localtime configuration." err
+    [ "$LOCALIZATION_STATUS" == "error" ] && log "Errors acquired during Localization configuration." err
+    [ "$NETWORK_STATUS" == "error" ] && log "Errors acquired during Network configuration." err
+    [ "$USERS_STATUS" == "error" ] && log "Errors acquired during Creating user and setting passwords." err
+    [ "$SWAP_STATUS" == "error" ] && log "Errors acquired during Creating a swap file." err
+    [ "$INITRAMFS_STATUS" == "error" ] && log "Errors acquired during Generating of initramfs images." err
+    [ "$DOTFILES_STATUS" == "error" ] && log "Errors acquired during Cloning dot-files." err
+    [ "$BOOTLOADER_STATUS" == "error" ] && log "Errors acquired during Installation of the bootloader." err
+}
+#+end_src
+
+* Begin Deploying
+#+begin_src sh :eval no
+deploy-init ()
+{
+    summary
+
+    log "Testing ethernet connection"
+    ping archlinux.org -c 2 &> /dev/null || log "No ethernet connection. Aborting." err || exit 1
+
+    log "Updating the system clock"
+    timedatectl set-ntp true
+
+    if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
+        drive-preparation
+        partitioning
+        formatting-crypt
+    else
+        partitioning
+        formatting
+    fi
+
+    if [[ "$IS_INSTALLING_FROM_EXISTING_ARCH" == "yes" ]]; then
+        PACSTRAP_OPTIONS=(-c)
+    else
+        log "Retrieving and ranking the latest mirrorlist"
+        pacman -Sy --needed --noconfirm pacman-contrib
+        reflector --country "$MIRRORLIST" \
+            --threads 4 \
+            --latest 20 \
+            --protocol http,https \
+            --sort rate \
+            --save /etc/pacman.d/mirrorlist.backup
+        rankmirrors -n 10 /etc/pacman.d/mirrorlist.backup > /etc/pacman.d/mirrorlist
+        pacman -Syy
+    fi
+
+    log "Installing essential packages"
+    sed -Ei "s|^#?ParallelDownloads.*|ParallelDownloads = 2|" /etc/pacman.conf
+    pacman -S --needed --noconfirm git rsync
+    check-cpu
+    [ "$SETUP" == "full" ] && check-gpu
+    if ! pacstrap "${PACSTRAP_OPTIONS[@]}" /mnt "${PKG[@]}"; then
+        log "Errors acquired during downloading. Trying again." err
+        pacstrap "${PACSTRAP_OPTIONS[@]}" /mnt "${PKG[@]}" || log "Problems with ethernet connection. Aborting." err || exit 1
+    fi
+
+    log "Generating fstab"
+    genfstab -U /mnt > /mnt/etc/fstab
+
+    deploy-localtime
+    deploy-localization
+    deploy-network
+    deploy-apparmor
+    deploy-users
+    deploy-swap
+    deploy-initramfs
+    deploy-bootloader
+    deploy-dotfiles
+    deploy-unmount
+
+    check-errors
+
+    log "Looks like everything is done."
+}
+#+end_src
+
+* TODO Choosing Installation Step
+#+begin_src sh :eval no
+OPTIND=2
+while getopts s:h options
+do
+    case $options in
+        s) STAGE="$OPTARG";;
+        *)
+            usage
+            exit
+            ;;
+    esac
+done
+
+if [[ -n "$STAGE" ]]; then
+    case $STAGE in
+        "init") deploy-init;;
+        "boot")
+            deploy-bootloader
+            deploy-unmount
+            check-errors
+            ;;
+        *)
+            log "Wrong options." err
+            usage
+            exit 1
+            ;;
+    esac
+else
+    deploy-init
+fi
+#+end_src
+
+* TODOs [0/2]
++ [ ] Auto-mounting on choosing the boot stage
++ [ ] Recheck wayland support as soon as i switch away from nvidia

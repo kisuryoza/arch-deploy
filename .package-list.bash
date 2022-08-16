@@ -25,6 +25,8 @@ PKG+=(exa bat procs dust ripgrep fd)
 
 PKG+=(gdb python rustup sccache rsync)
 PKG+=(meson ninja)  # build system
+PKG+=(dos2unix)     # Text file format converter
+PKG+=(stow)         # Manage installation of multiple softwares in the same directory tree
 
 
 if [[ "$SETUP" == "full" ]];
@@ -33,6 +35,7 @@ then
     PKG+=(emacs ccls)
     PKG+=(cppcheck ctags)
     PKG+=(xdg-desktop-portal xdg-desktop-portal-gtk)
+    PKG+=(bemenu)           # Dynamic menu library and client program inspired by dmenu
 
 #####################################################-- Display servers
 
@@ -41,7 +44,8 @@ then
     PKG+=(xorg-server xorg-xinit xclip)
     PKG+=(xautolock)        # An automatic X screen-locker/screen-saver
     PKG+=(picom)            # compositor
-    PKG+=(rofi)             # A window switcher, application launcher and dmenu replacement
+    #PKG+=(rofi)             # A window switcher, application launcher and dmenu replacement
+    PKG+=(bemenu-x11)       # X11 renderer for bemenu
     PKG+=(flameshot)        # screenshoter
     PKG+=(feh)              # image viewer & wallpaper setting
 fi
@@ -52,6 +56,7 @@ then
     PKG+=(swayidle)         # Idle management daemon
     PKG+=(swaylock)         # Screen locker
     PKG+=(swaybg)           # wallpaper setting
+    PKG+=(bemenu-wayland)   # Wayland (wlroots-based compositors) renderer for bemenu
     PKG+=(flameshot grim)   # screenshoter
     PKG+=(imv)              # image viewer
     PKG+=(xdg-desktop-portal-wlr)
@@ -61,7 +66,18 @@ fi
 ################################################-- Multimedia framework
 
 PKG+=(pipewire wireplumber helvum)
-PKG+=(pipewire-alsa pipewire-pulse pamixer)
+PKG+=(pipewire-alsa pipewire-pulse)
+
+##------------------------------- Multimedia related Utilities and Apps
+
+PKG+=(pamixer)          # Pulseaudio command-line mixer like amixer
+PKG+=(pavucontrol)      # PulseAudio Volume Control
+PKG+=(playerctl)        # mpris media player command-line controller
+PKG+=(mediainfo)        # Supplies technical and tag information about a video or audio file (CLI interface)
+PKG+=(soundconverter)   # A simple sound converter application for GNOME
+PKG+=(mpv mpv-mpris)    # a free, open source, and cross-platform media player
+PKG+=(songrec)          # An open-source, unofficial Shazam client for Linux
+#PKG+=(lmms)             # The Linux MultiMedia Studio
 
 #############################################-- Miscellaneous utilities
 ##----------------------------------------------------------- VPN stuff
@@ -72,10 +88,11 @@ PKG+=(openvpn dhcpcd dnscrypt-proxy tor)
 
 PKG+=(thunar)
 PKG+=(thunar-volman thunar-archive-plugin ffmpegthumbnailer tumbler)
-PKG+=(gvfs-mtp) # Virtual filesystem implementation
-PKG+=(ark)      # Universal archiving tool
-PKG+=(p7zip)    # 7z support
-PKG+=(handlr)   # Powerful alternative to xdg-utils (managing mime types)
+PKG+=(udiskie)      # Removable disk automounter using udisks
+PKG+=(gvfs-mtp)     # Virtual filesystem implementation
+PKG+=(file-roller)  # Create and modify archives
+PKG+=(p7zip)        # 7z support
+PKG+=(handlr)       # Powerful alternative to xdg-utils (managing mime types)
 
 ##--------------------------------------------------- Language spelling
 
@@ -97,7 +114,6 @@ PKG+=(alacritty)        # terminal
 #PKG+=(htop)             # interactive process viewer
 PKG+=(bottom)           # A customizable cross-platform graphical process/system monitor for the terminal.
 PKG+=(fzf)              # A command-line fuzzy finder
-PKG+=(playerctl)        # mpris media player command-line controller
 PKG+=(pacman-contrib)   # various scripts to pacman
 PKG+=(sysstat)          # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
 PKG+=(pkgstats)         # Submit a list of installed packages to the Arch Linux project
@@ -106,6 +122,7 @@ PKG+=(dunst)            # Customizable and lightweight notification-daemon
 PKG+=(tlp)              # Linux Advanced Power Management
 PKG+=(gamemode lib32-gamemode) # A daemon/lib combo that allows games to request a set of optimisations be temporarily applied to the host OS
 PKG+=(asp)              # for paru
+PKG+=(zerotier-one)     # Creates virtual Ethernet networks of almost unlimited size
 PKG+=(yt-dlp)
 PKG+=(qrencode)
 
@@ -113,20 +130,22 @@ PKG+=(qrencode)
 
 # Theme managing
 PKG+=(qt5ct qt6ct lxappearance-gtk3)
-# Themes
-PKG+=(breeze materia-gtk-theme python-pywal)
+# Themes and Icons
+PKG+=(materia-gtk-theme python-pywal breeze-icons)
 # Fonts
-PKG+=(ttf-dejavu ttf-liberation ttc-iosevka-etoile ttc-iosevka-ss14)
+PKG+=(ttf-dejavu)
+PKG+=(ttf-liberation)       # Font family which aims at metric compatibility with Arial, Times New Roman, and Courier New
+PKG+=(ttc-iosevka-ss14)     # JetBrains Mono Style
+#PKG+=(ttc-iosevka-aile)     # Sans style
+PKG+=(ttc-iosevka-etoile)   # Serif style
 PKG+=(unicode-emoji noto-fonts noto-fonts-cjk noto-fonts-emoji)
 
 ################################################################-- Apps
 
 PKG+=(discord telegram-desktop)
-PKG+=(mpv mpv-mpris pragha songrec)
 PKG+=(libreoffice-fresh qbittorrent)
 PKG+=(keepassxc)                    # Cross-platform community-driven port of Keepass password manager
 PKG+=(inkscape)                     # Professional vector graphics editor
-#PKG+=(lmms)                         # The Linux MultiMedia Studio
 PKG+=(zathura zathura-pdf-mupdf)    # Minimalistic document viewer
 fi
 

@@ -27,6 +27,9 @@ PKG+=(gdb python rustup sccache rsync)
 PKG+=(meson ninja)  # build system
 PKG+=(dos2unix)     # Text file format converter
 PKG+=(stow)         # Manage installation of multiple softwares in the same directory tree
+#PKG+=(neofetch)     # system information tool
+#PKG+=(htop)         # interactive process viewer
+PKG+=(bottom)       # A customizable cross-platform graphical process/system monitor for the terminal.
 
 
 if [[ "$SETUP" == "full" ]];
@@ -110,9 +113,6 @@ PKG+=(w3m)  # Text-based Web browser (as render for HTML)
 ##-------------------------------------------------------------- Others
 
 PKG+=(alacritty)        # terminal
-#PKG+=(neofetch)         # system information tool
-#PKG+=(htop)             # interactive process viewer
-PKG+=(bottom)           # A customizable cross-platform graphical process/system monitor for the terminal.
 PKG+=(fzf)              # A command-line fuzzy finder
 PKG+=(pacman-contrib)   # various scripts to pacman
 PKG+=(sysstat)          # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)

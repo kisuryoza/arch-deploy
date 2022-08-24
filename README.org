@@ -1,5 +1,5 @@
-#+title: Arch deploy script
-#+author: justAlex0
+#+TITLE:     Arch deploy script
+#+AUTHOR:    justAlex0
 #+PROPERTY: header-args :tangle arch-deploy.bash
 #+auto_tangle: t
 

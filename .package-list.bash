@@ -34,7 +34,7 @@ PKG+=(bottom)       # A customizable cross-platform graphical process/system mon
 
 if [[ "$SETUP" == "full" ]];
 then
-    PKG+=(neovim neovide)
+    PKG+=(neovim neovide fennel)
     PKG+=(emacs ccls)
     PKG+=(cppcheck ctags)
     PKG+=(xdg-desktop-portal xdg-desktop-portal-gtk)

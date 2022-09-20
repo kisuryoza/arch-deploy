@@ -34,7 +34,7 @@ PKG+=(bottom)       # A customizable cross-platform graphical process/system mon
 
 if [[ "$SETUP" == "full" ]];
 then
-    PKG+=(neovim neovide fennel)
+    PKG+=(neovim neovim-qt fennel)
     PKG+=(emacs ccls)
     PKG+=(cppcheck ctags)
     PKG+=(xdg-desktop-portal xdg-desktop-portal-gtk)
@@ -86,6 +86,7 @@ PKG+=(songrec)          # An open-source, unofficial Shazam client for Linux
 ##----------------------------------------------------------- VPN stuff
 
 PKG+=(openvpn dhcpcd dnscrypt-proxy tor)
+PKG+=(syncthing)    # file synchronization client/server application
 
 ##------------------------------------------------------- File managing
 
@@ -105,11 +106,6 @@ PKG+=(hunspell hunspell-en_us hunspell-ru enchant gspell)
 
 PKG+=(tesseract tesseract-data-eng tesseract-data-rus gimagereader-gtk)
 
-##---------------------------------------------------------------- Mail
-
-PKG+=(aerc) # Email Client
-PKG+=(w3m)  # Text-based Web browser (as render for HTML)
-
 ##-------------------------------------------------------------- Others
 
 PKG+=(alacritty)        # terminal
@@ -125,6 +121,7 @@ PKG+=(asp)              # for paru
 PKG+=(zerotier-one)     # Creates virtual Ethernet networks of almost unlimited size
 PKG+=(yt-dlp)
 PKG+=(qrencode)
+PKG+=(geary)            # mail client
 
 ################################################-- Themes, icons, fonts
 

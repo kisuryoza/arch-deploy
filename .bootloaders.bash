@@ -68,39 +68,39 @@ bootloader-unified-kernel-image ()
 
     pacstrap /mnt efibootmgr
 
-    if [ ! -r "/mnt/etc/mkinitcpio.d/linux.preset.backup" ]; then
-        mv /mnt/etc/mkinitcpio.d/linux.preset /mnt/etc/mkinitcpio.d/linux.preset.backup
-    fi
+    [[ ! -r "/etc/mkinitcpio.d/linux.preset.backup" ]] && mv /etc/mkinitcpio.d/linux.preset /etc/mkinitcpio.d/linux.preset.backup
 
     log "Creating linux preset for mkinitcpio"
     SPLASH="/usr/share/systemd/bootctl/splash-arch.bmp"
     {
         echo "ALL_config=\"/etc/mkinitcpio.conf\""
         echo "ALL_kver=\"/boot/vmlinuz-linux\""
-        echo -e "ALL_microcode=(/boot/*-ucode.img)\n"
+        echo "ALL_microcode=(/boot/*-ucode.img)"
 
-        echo -e "PRESETS=('default')\n"
+        echo "PRESETS=('default')"
 
         echo "default_image=\"/boot/initramfs-linux.img\""
         echo "default_efi_image=\"$ESP/EFI/BOOT/bootx64.efi\""
         echo "default_options=\"--splash $SPLASH\""
     } > /mnt/etc/mkinitcpio.d/linux.preset
 
+    log "Creating linux-zen preset for mkinitcpio"
     cp -f /mnt/etc/mkinitcpio.d/linux.preset /mnt/etc/mkinitcpio.d/linux-zen.preset
     sed -i "s|linux|linux-zen|" /mnt/etc/mkinitcpio.d/linux-zen.preset
 
     UUID=$(blkid -s UUID -o value "$DRIVE$P2")
     ROOT_PARAMS="root=UUID=$UUID"
-    if [ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]; then
-        ROOT_PARAMS="cryptdevice=UUID=$UUID:root root=/dev/mapper/root"
-    fi
+    [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]] && ROOT_PARAMS="cryptdevice=UUID=$UUID:root root=/dev/mapper/root"
 
+    log "Applying kernel parameters"
     echo "$ROOT_PARAMS rw bgrt_disable nowatchdog ${KERNEL_PARAMS[*]}" > /mnt/etc/kernel/cmdline
 
     mkdir -p /mnt"$ESP"/EFI/Arch
     mkdir -p /mnt"$ESP"/EFI/BOOT
+
+    log "Starting mkinitcpio"
     arch-chroot /mnt mkinitcpio -p linux
 
-    log "Creating uefi boot entry"
+    log "Creating UEFI boot entry"
     arch-chroot /mnt efibootmgr --create --disk "$DRIVE" --part 1 --label "Arch" --loader "EFI\BOOT\bootx64.efi" --verbose
 }

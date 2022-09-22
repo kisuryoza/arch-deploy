@@ -6,7 +6,7 @@ PKG+=(base base-devel)
 
 ###########################################################-- Essential
 
-PKG+=(git gvim networkmanager iproute2 nftables apparmor wget opendoas lz4)
+PKG+=(git gvim networkmanager iwd iproute2 nftables apparmor wget opendoas lz4)
 
 ##---------------------------------------------------------------- Docs
 
@@ -73,6 +73,7 @@ PKG+=(pipewire-alsa pipewire-pulse)
 
 ##------------------------------- Multimedia related Utilities and Apps
 
+PKG+=(mpd ncmpcpp)      # Music player daemon
 PKG+=(pamixer)          # Pulseaudio command-line mixer like amixer
 PKG+=(pavucontrol)      # PulseAudio Volume Control
 PKG+=(playerctl)        # mpris media player command-line controller
@@ -85,7 +86,7 @@ PKG+=(songrec)          # An open-source, unofficial Shazam client for Linux
 #############################################-- Miscellaneous utilities
 ##----------------------------------------------------------- VPN stuff
 
-PKG+=(openvpn dhcpcd dnscrypt-proxy tor)
+PKG+=(openvpn dnscrypt-proxy tor)
 PKG+=(syncthing)    # file synchronization client/server application
 
 ##------------------------------------------------------- File managing
@@ -121,6 +122,7 @@ PKG+=(asp)              # for paru
 PKG+=(zerotier-one)     # Creates virtual Ethernet networks of almost unlimited size
 PKG+=(yt-dlp)
 PKG+=(qrencode)
+PKG+=(bc)               # An arbitrary precision calculator language
 PKG+=(geary)            # mail client
 
 ################################################-- Themes, icons, fonts

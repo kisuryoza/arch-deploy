@@ -467,11 +467,22 @@ deploy-network ()
         echo "127.0.1.1        $HOST_NAME"
     } > /mnt/etc/hosts
     arch-chroot /mnt systemctl enable NetworkManager.service
+    {
+        echo "[device]"
+        echo "wifi.scan-rand-mac-address=no"
+    } > /mnt/etc/NetworkManager/NetworkManager.conf
+    {
+        echo "[General]"
+        echo "EnableNetworkConfiguration=True"
+    } > /mnt/etc/iwd/main.conf
     if [[ -x /mnt/usr/bin/nft ]]; then
         arch-chroot /mnt systemctl enable nftables.service
     fi
 }
 #+end_src
+References:
+- [[https://bbs.archlinux.org/viewtopic.php?id=250604][Arch Forum: Troubleshooting unstable wifi]]
+- [[https://wiki.archlinux.org/title/Iwd#No_DHCP_in_AP_mode][Arch Wiki: No DHCP in AP mode]]
 
 ** AppArmor enabling
 #+begin_src sh :eval no

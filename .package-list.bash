@@ -37,7 +37,7 @@ then
     PKG+=(neovim neovim-qt fennel)
     PKG+=(emacs ccls)
     PKG+=(cppcheck ctags)
-    PKG+=(xdg-desktop-portal xdg-desktop-portal-gtk)
+    PKG+=(xdg-desktop-portal)
     PKG+=(bemenu)           # Dynamic menu library and client program inspired by dmenu
 
 #####################################################-- Display servers
@@ -45,9 +45,9 @@ then
 if [[ "$DISPLAY_SERVER" == "X" ]];
 then
     PKG+=(xorg-server xorg-xinit xclip)
+    PKG+=(xdg-desktop-portal-gtk)
     PKG+=(xautolock)        # An automatic X screen-locker/screen-saver
     PKG+=(picom)            # compositor
-    #PKG+=(rofi)             # A window switcher, application launcher and dmenu replacement
     PKG+=(bemenu-x11)       # X11 renderer for bemenu
     PKG+=(flameshot)        # screenshoter
     PKG+=(feh)              # image viewer & wallpaper setting
@@ -56,6 +56,7 @@ fi
 if [[ "$DISPLAY_SERVER" == "Wayland" ]];
 then
     PKG+=(wlroots xorg-xwayland wl-clipboard)
+    PKG+=(xdg-desktop-portal-wlr)
     PKG+=(sway)             # Tiling Wayland compositor (as a dependency)
     PKG+=(swayidle)         # Idle management daemon
     PKG+=(swaylock)         # Screen locker
@@ -63,7 +64,6 @@ then
     PKG+=(bemenu-wayland)   # Wayland (wlroots-based compositors) renderer for bemenu
     PKG+=(flameshot grim)   # screenshoter
     PKG+=(imv)              # image viewer
-    PKG+=(xdg-desktop-portal-wlr)
     PKG+=(gtk-layer-shell)  # For EWW
 fi
 

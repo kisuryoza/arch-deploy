@@ -471,6 +471,7 @@ deploy-network ()
         echo "[device]"
         echo "wifi.scan-rand-mac-address=no"
     } > /mnt/etc/NetworkManager/NetworkManager.conf
+    mkdir -p /mnt/etc/iwd
     {
         echo "[General]"
         echo "EnableNetworkConfiguration=True"
@@ -501,15 +502,15 @@ deploy-users ()
 {
     trap "readonly USERS_STATUS=error" ERR
     log "Setting root password"
-    arch-chroot /mnt /bin/bash -c "echo root:$ROOT_PASSWORD | chpasswd"
+    arch-chroot /mnt /bin/bash -c "echo root:$ROOT_PASSWORD | chpasswd" || log "Error - root password" err
 
     if [[ -n "$USER" ]]; then
         log "Creating user $USER"
-        arch-chroot /mnt useradd --create-home --groups wheel "$USER"
+        arch-chroot /mnt useradd --create-home --groups wheel "$USER" || log "Error - user" err
 
         if [[ -n "$USER_PASSWORD" ]]; then
             log "Setting user password"
-            arch-chroot /mnt /bin/bash -c "echo $USER:$USER_PASSWORD | chpasswd"
+            arch-chroot /mnt /bin/bash -c "echo $USER:$USER_PASSWORD | chpasswd" || log "Error - user password" err
         else
             arch-chroot /mnt passwd -d "$USER"
         fi
@@ -609,10 +610,10 @@ deploy-unmount ()
 {
     log "Unmounting /mnt"
     [ "$ENABLE_SWAP_FILE" == "yes" ] && swapoff /mnt/swapfile
-    umount -R /mnt || log "Failed to umount /mnt" err
+    umount -R /mnt || log "Error - Failed to umount /mnt" err
     if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
         log "Closing the encrypted partition"
-        cryptsetup close root || log "Failed to close the encrypted partition" err
+        cryptsetup close root || log "Error - Failed to close the encrypted partition" err
     fi
 }
 #+end_src

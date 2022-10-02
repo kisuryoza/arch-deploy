@@ -56,6 +56,7 @@ fi
 if [[ "$DISPLAY_SERVER" == "Wayland" ]];
 then
     PKG+=(wlroots xorg-xwayland wl-clipboard)
+    PKG+=(sway)             # Tiling Wayland compositor (as a dependency)
     PKG+=(swayidle)         # Idle management daemon
     PKG+=(swaylock)         # Screen locker
     PKG+=(swaybg)           # wallpaper setting
@@ -73,7 +74,8 @@ PKG+=(pipewire-alsa pipewire-pulse)
 
 ##------------------------------- Multimedia related Utilities and Apps
 
-PKG+=(mpd ncmpcpp)      # Music player daemon
+PKG+=(mpd mpc ncmpcpp)  # Music player daemon
+PKG+=(easyeffects)      # Audio Effects for Pipewire applications
 PKG+=(pamixer)          # Pulseaudio command-line mixer like amixer
 PKG+=(pavucontrol)      # PulseAudio Volume Control
 PKG+=(playerctl)        # mpris media player command-line controller
@@ -84,7 +86,7 @@ PKG+=(songrec)          # An open-source, unofficial Shazam client for Linux
 #PKG+=(lmms)             # The Linux MultiMedia Studio
 
 #############################################-- Miscellaneous utilities
-##----------------------------------------------------------- VPN stuff
+##------------------------------------------------------ Ethernet stuff
 
 PKG+=(openvpn dnscrypt-proxy tor)
 PKG+=(syncthing)    # file synchronization client/server application
@@ -92,7 +94,7 @@ PKG+=(syncthing)    # file synchronization client/server application
 ##------------------------------------------------------- File managing
 
 PKG+=(thunar)
-PKG+=(thunar-volman thunar-archive-plugin ffmpegthumbnailer tumbler)
+PKG+=(thunar-volman thunar-archive-plugin thunar-media-tags-plugin ffmpegthumbnailer tumbler)
 PKG+=(udiskie)      # Removable disk automounter using udisks
 PKG+=(gvfs-mtp)     # Virtual filesystem implementation
 PKG+=(file-roller)  # Create and modify archives
@@ -110,6 +112,7 @@ PKG+=(tesseract tesseract-data-eng tesseract-data-rus gimagereader-gtk)
 ##-------------------------------------------------------------- Others
 
 PKG+=(alacritty)        # terminal
+PKG+=(acpi)             # Client for battery, power, and thermal readings
 PKG+=(fzf)              # A command-line fuzzy finder
 PKG+=(pacman-contrib)   # various scripts to pacman
 PKG+=(sysstat)          # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
@@ -141,7 +144,7 @@ PKG+=(unicode-emoji noto-fonts noto-fonts-cjk noto-fonts-emoji)
 
 ################################################################-- Apps
 
-PKG+=(discord telegram-desktop)
+PKG+=(telegram-desktop)
 PKG+=(libreoffice-fresh qbittorrent)
 PKG+=(keepassxc)                    # Cross-platform community-driven port of Keepass password manager
 PKG+=(inkscape)                     # Professional vector graphics editor

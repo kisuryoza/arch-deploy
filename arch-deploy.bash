@@ -15,7 +15,6 @@ SETUP="minimal"
 # What Display server and corresponding desktop utils to install
 # Only works if SETUP == "full"
 # Options: X | Wayland
-# FIXME wayland is experimantal cuz it doesn't work well with my nvidia
 DISPLAY_SERVER="X"
 
 # Bootloader:
@@ -372,7 +371,7 @@ deploy-users ()
             echo "permit nopass root"
             echo -e "permit :wheel\n"
         } > /mnt/etc/doas.conf
-        arch-chroot /mnt chmod -c 0400 /mnt/etc/doas.conf
+        arch-chroot /mnt chmod -c 0400 /etc/doas.conf
         arch-chroot /mnt ln -sf /usr/bin/doas /usr/bin/sudo
     else
         sed -Ei "s|^#?%wheel ALL=(ALL:ALL) ALL|%wheel ALL=(ALL:ALL) ALL|" /mnt/etc/sudoers

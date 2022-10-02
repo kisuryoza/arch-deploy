@@ -385,7 +385,7 @@ deploy-swap ()
         log "Creating a swap file"
 
         dd if=/dev/zero of=/mnt/swapfile bs=1M count="$SWAP_FILE_SIZE"GiB status=progress
-        arch-chroot /mnt chmod 0600 /mnt/swapfile
+        arch-chroot /mnt chmod 0600 /swapfile
         arch-chroot /mnt mkswap -U clear /swapfile
         arch-chroot /mnt swapon /swapfile
 

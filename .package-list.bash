@@ -6,7 +6,7 @@ PKG+=(base base-devel)
 
 ###########################################################-- Essential
 
-PKG+=(git gvim networkmanager iwd iproute2 nftables apparmor wget opendoas lz4)
+PKG+=(git gvim networkmanager iwd iproute2 iptables-nft apparmor wget opendoas lz4)
 
 ##---------------------------------------------------------------- Docs
 
@@ -24,6 +24,8 @@ PKG+=(exa bat procs dust ripgrep fd)
 ##-------------------------------------------------------------- Others
 
 PKG+=(gdb python rustup sccache rsync)
+PKG+=(xplr)         # A hackable, minimal, fast TUI file explorer
+PKG+=(bubblewrap)   # Unprivileged sandboxing tool
 PKG+=(meson ninja)  # build system
 PKG+=(dos2unix)     # Text file format converter
 PKG+=(stow)         # Manage installation of multiple softwares in the same directory tree
@@ -57,14 +59,16 @@ if [[ "$DISPLAY_SERVER" == "Wayland" ]];
 then
     PKG+=(wlroots xorg-xwayland wl-clipboard)
     PKG+=(xdg-desktop-portal-wlr)
+    PKG+=(qt5-wayland qt6-wayland)
     PKG+=(sway)             # Tiling Wayland compositor (as a dependency)
     PKG+=(swayidle)         # Idle management daemon
     PKG+=(swaylock)         # Screen locker
     PKG+=(swaybg)           # wallpaper setting
     PKG+=(bemenu-wayland)   # Wayland (wlroots-based compositors) renderer for bemenu
-    PKG+=(flameshot grim)   # screenshoter
+    PKG+=(grim slurp)       # screenshoter
     PKG+=(imv)              # image viewer
     PKG+=(gtk-layer-shell)  # For EWW
+    PKG+=(glfw-wayland)     # framework for graphical application development
 fi
 
 ################################################-- Multimedia framework
@@ -131,9 +135,9 @@ PKG+=(geary)            # mail client
 ################################################-- Themes, icons, fonts
 
 # Theme managing
-PKG+=(qt5ct qt6ct lxappearance-gtk3)
+PKG+=(kvantum lxappearance-gtk3)
 # Themes and Icons
-PKG+=(materia-gtk-theme python-pywal breeze-icons)
+PKG+=(python-pywal breeze-icons)
 # Fonts
 PKG+=(ttf-dejavu)
 PKG+=(ttf-liberation)       # Font family which aims at metric compatibility with Arial, Times New Roman, and Courier New

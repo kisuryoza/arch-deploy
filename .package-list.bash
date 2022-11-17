@@ -16,6 +16,7 @@ PKG+=(man-db man-pages texinfo)
 
 PKG+=(bash-completion)
 PKG+=(zsh zsh-syntax-highlighting zsh-autosuggestions)
+PKG+=(starship)
 
 ##-------------------------------------------- Rust alternatives to gnu
 
@@ -29,15 +30,17 @@ PKG+=(bubblewrap)   # Unprivileged sandboxing tool
 PKG+=(meson ninja)  # build system
 PKG+=(dos2unix)     # Text file format converter
 PKG+=(stow)         # Manage installation of multiple softwares in the same directory tree
-#PKG+=(neofetch)     # system information tool
-#PKG+=(htop)         # interactive process viewer
+PKG+=(neofetch)     # system information tool
+PKG+=(htop)         # interactive process viewer
 PKG+=(bottom)       # A customizable cross-platform graphical process/system monitor for the terminal.
+PKG+=(sysstat)      # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
 
 
 if [[ "$SETUP" == "full" ]];
 then
-    PKG+=(neovim neovim-qt fennel)
+    PKG+=(neovim fennel)
     PKG+=(emacs ccls)
+    PKG+=(npm)
     PKG+=(cppcheck ctags)
     PKG+=(xdg-desktop-portal)
     PKG+=(bemenu)           # Dynamic menu library and client program inspired by dmenu
@@ -68,13 +71,13 @@ then
     PKG+=(grim slurp)       # screenshoter
     PKG+=(imv)              # image viewer
     PKG+=(gtk-layer-shell)  # For EWW
-    PKG+=(glfw-wayland)     # framework for graphical application development
+    PKG+=(glfw-wayland)     # GLFW library
 fi
 
 ################################################-- Multimedia framework
 
-PKG+=(pipewire wireplumber helvum)
-PKG+=(pipewire-alsa pipewire-pulse)
+PKG+=(pipewire wireplumber)
+PKG+=(pipewire-alsa pipewire-pulse pipewire-jack qjackctl)
 
 ##------------------------------- Multimedia related Utilities and Apps
 
@@ -130,7 +133,6 @@ PKG+=(zerotier-one)     # Creates virtual Ethernet networks of almost unlimited 
 PKG+=(yt-dlp)
 PKG+=(qrencode)
 PKG+=(bc)               # An arbitrary precision calculator language
-PKG+=(geary)            # mail client
 
 ################################################-- Themes, icons, fonts
 
@@ -142,7 +144,7 @@ PKG+=(python-pywal breeze-icons)
 PKG+=(ttf-dejavu)
 PKG+=(ttf-liberation)       # Font family which aims at metric compatibility with Arial, Times New Roman, and Courier New
 PKG+=(ttc-iosevka-ss14)     # JetBrains Mono Style
-#PKG+=(ttc-iosevka-aile)     # Sans style
+PKG+=(ttc-iosevka-aile)     # Sans style
 PKG+=(ttc-iosevka-etoile)   # Serif style
 PKG+=(unicode-emoji noto-fonts noto-fonts-cjk noto-fonts-emoji)
 
@@ -152,7 +154,7 @@ PKG+=(telegram-desktop)
 PKG+=(libreoffice-fresh qbittorrent)
 PKG+=(keepassxc)                    # Cross-platform community-driven port of Keepass password manager
 PKG+=(inkscape)                     # Professional vector graphics editor
-PKG+=(zathura zathura-pdf-mupdf)    # Minimalistic document viewer
+PKG+=(zathura zathura-djvu zathura-pdf-mupdf)    # Minimalistic document viewer
 fi
 
 #wine

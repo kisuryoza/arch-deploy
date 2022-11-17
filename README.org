@@ -7,6 +7,8 @@ Yet another simple script for automated installation of Arch Linux.
 
 This script basically follows the official Installation Guide from ArchWiki but with some additions.
 
+It can install Arch with GRUB/Unified kernel image and with non-encrypted or encrypted root partition /(dm-crypt with LUKS)/
+
 This ~README.org~ may help those who install Arch manually or make their own script.
 
 *** Disclaimer
@@ -39,8 +41,6 @@ Also you might want to write all the output to a file in case of debugging.
 #+begin_src sh :tangle no
 ./arch-deploy/arch-deploy.bash /dev/sda 2>&1 | tee log.txt
 #+end_src
-
-It can install Arch with GRUB/Unified kernel image and non-\/encrypted root partition /(dm-crypt with LUKS)/
 
 * Table of Contents :TOC:
 - [[#installation][Installation]]

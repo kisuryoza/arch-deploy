@@ -127,7 +127,7 @@ GITCLONE="https://gitlab.com/justAlex0/dot-files"
 * Script-defined variables
 These are global variables
 #+begin_src sh :eval no
-SCRIPT_PATH=$(readlink -f "$0")
+SCRIPT_PATH=$(realpath -s "${BASH_SOURCE[0]}")
 SCRIPT_NAME=$(basename "$SCRIPT_PATH")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 
@@ -135,17 +135,7 @@ DRIVE="$1"
 
 ESP="/boot/efi"
 
-DRIVES=$(lsblk --nodeps --noheadings --paths --raw --output NAME)
-
-BOLD=$(tput bold)
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-YELLOW=$(tput setaf 3)
-BLUE=$(tput setaf 4)
-ESC=$(tput sgr0)
-
-readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR DRIVE ESP DRIVES
-readonly BOLD RED GREEN YELLOW BLUE ESC
+readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR DRIVE ESP
 declare -a PACSTRAP_OPTIONS PKG AUR_PKG MODULES KERNEL_PARAMS
 
 source "$SCRIPT_DIR"/.package-list.bash
@@ -154,36 +144,55 @@ source "$SCRIPT_DIR"/.package-list.bash
 * Miscellaneous Functions
 ** Print Help
 #+begin_src sh :eval no
-usage ()
+help ()
 {
-    echo -e "${YELLOW}Usage:${ESC}
-./$SCRIPT_NAME <drive> [OPTIONS]
-[OPTIONS]
-    -s init|boot    Specify the stage of installing.
+    printf "The script installs Arch Linux
+
+Usage:
+    %s <drive> [OPTIONS]
+
+Options:
+    -s, --stage     Specify the stage of installing.
+                    init|boot
                     default: init
-"
+" "$SCRIPT_NAME"
 }
 #+end_src
 
 ** Output log
 #+begin_src sh :eval no
+$DEBUG && set +ux
+BOLD=$(tput bold)
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BLUE=$(tput setaf 4)
+ESC=$(tput sgr0)
+readonly BOLD RED GREEN YELLOW BLUE ESC
+$DEBUG && set -ux
+
 log ()
 {
+    $DEBUG && set +ux
     case "$2" in
         "err")
-            printf "[log] ${BOLD}${RED}[%s]${ESC}\n" "$1"
+            printf "%s[%s]%s\n" "${BOLD}${RED}" "$1" "${ESC}" >&2
             ;;
-        *)
-            printf "[log] ${BOLD}${YELLOW}[%s]${ESC}\n" "$1"
+        "warn")
+            printf "%s[%s]%s\n" "${BOLD}${YELLOW}" "$1" "${ESC}"
+            ;;
+        ,*)
+            printf "%s[%s]%s\n" "${BOLD}${GREEN}" "$1" "${ESC}"
             ;;
     esac
+    $DEBUG && set -ux
 }
 #+end_src
 
 ** Get the Names of Partition Parts
 This extends sda to sda1 and sda2, nvme0n1 to nvme0n1p1 and nvme0n1p2 and will be used next by [[#drive-partitioning][Drive Partitioning]] and during bootloader's installation.
 #+begin_src sh :eval no
-if echo "$DRIVES" | grep -x "$DRIVE" &> /dev/null; then
+if lsblk --nodeps --noheadings --paths --raw --output NAME | grep -x "$DRIVE" &> /dev/null; then
     case $DRIVE in
         *"sd"* | *"vd"* )
             P1="1"
@@ -197,14 +206,14 @@ if echo "$DRIVES" | grep -x "$DRIVE" &> /dev/null; then
             ;;
         * )
             log "Only HDD or SSD. Aborting." err
-            usage
+            help
             exit 1
             ;;
     esac
     readonly P1 P2
 else
     log "Wrong \"$1\" drive. Aborting." err
-    usage
+    help
     exit 1
 fi
 #+end_src
@@ -216,7 +225,7 @@ summary ()
     if ! check-uefi; then
         if [[ "$BOOTLOADER" != "grub" ]]; then
             log "UEFI is not supported." err
-            log "Grub will be installed instead."
+            log "Grub will be installed instead." warn
             BOOTLOADER="grub"
             [ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ] && log "BIOS + grub + full drive encryption is not supported in this script because I personally would never use this combination and so I didnt want to spend more time on it" err && exit 1
         fi
@@ -700,17 +709,43 @@ deploy-init ()
 
 * TODO Choosing Installation Step
 #+begin_src sh :eval no
-OPTIND=2
-while getopts s:h options
-do
-    case $options in
-        s) STAGE="$OPTARG";;
-        *)
-            usage
-            exit
+LONG_OPTS=stage:
+SHORT_OPTS=s:
+PARSED=$(getopt --options ${SHORT_OPTS} \
+    --longoptions ${LONG_OPTS} \
+    --name "$0" \
+    -- "$@")
+eval set -- "${PARSED}"
+
+while true; do
+    case "$1" in
+        -s|--stage)
+            STAGE="$2"
+            shift 2
+            ;;
+        -h|--help)
+            help
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        ,*)
+            echo "Error while was passing the options"
+            help
+            exit 1
             ;;
     esac
 done
+
+if [[ $# -ne 1 ]]; then
+    log "A single input file is required" err
+    help
+    exit 1
+else
+    DRIVE="$1"
+fi
 
 if [[ -n "$STAGE" ]]; then
     case $STAGE in
@@ -720,9 +755,9 @@ if [[ -n "$STAGE" ]]; then
             deploy-unmount
             check-errors
             ;;
-        *)
+        ,*)
             log "Wrong options." err
-            usage
+            help
             exit 1
             ;;
     esac

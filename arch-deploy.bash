@@ -46,7 +46,7 @@ IS_INSTALLING_FROM_EXISTING_ARCH="no"
 GITCLONE="https://gitlab.com/justAlex0/dot-files"
 ############################################################################
 
-SCRIPT_PATH=$(readlink -f "$0")
+SCRIPT_PATH=$(realpath -s "${BASH_SOURCE[0]}")
 SCRIPT_NAME=$(basename "$SCRIPT_PATH")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 
@@ -54,44 +54,53 @@ DRIVE="$1"
 
 ESP="/boot/efi"
 
-DRIVES=$(lsblk --nodeps --noheadings --paths --raw --output NAME)
+readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR DRIVE ESP
+declare -a PACSTRAP_OPTIONS PKG AUR_PKG MODULES KERNEL_PARAMS
 
+source "$SCRIPT_DIR"/.package-list.bash
+
+help ()
+{
+    printf "The script installs Arch Linux
+
+Usage:
+    %s <drive> [OPTIONS]
+
+Options:
+    -s, --stage     Specify the stage of installing.
+                    init|boot
+                    default: init
+" "$SCRIPT_NAME"
+}
+
+$DEBUG && set +ux
 BOLD=$(tput bold)
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
 YELLOW=$(tput setaf 3)
 BLUE=$(tput setaf 4)
 ESC=$(tput sgr0)
-
-readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR DRIVE ESP DRIVES
 readonly BOLD RED GREEN YELLOW BLUE ESC
-declare -a PACSTRAP_OPTIONS PKG AUR_PKG MODULES KERNEL_PARAMS
-
-source "$SCRIPT_DIR"/.package-list.bash
-
-usage ()
-{
-    echo -e "${YELLOW}Usage:${ESC}
-./$SCRIPT_NAME <drive> [OPTIONS]
-[OPTIONS]
-    -s init|boot    Specify the stage of installing.
-                    default: init
-"
-}
+$DEBUG && set -ux
 
 log ()
 {
+    $DEBUG && set +ux
     case "$2" in
         "err")
-            printf "[log] ${BOLD}${RED}[%s]${ESC}\n" "$1"
+            printf "%s[%s]%s\n" "${BOLD}${RED}" "$1" "${ESC}" >&2
+            ;;
+        "warn")
+            printf "%s[%s]%s\n" "${BOLD}${YELLOW}" "$1" "${ESC}"
             ;;
         *)
-            printf "[log] ${BOLD}${YELLOW}[%s]${ESC}\n" "$1"
+            printf "%s[%s]%s\n" "${BOLD}${GREEN}" "$1" "${ESC}"
             ;;
     esac
+    $DEBUG && set -ux
 }
 
-if echo "$DRIVES" | grep -x "$DRIVE" &> /dev/null; then
+if lsblk --nodeps --noheadings --paths --raw --output NAME | grep -x "$DRIVE" &> /dev/null; then
     case $DRIVE in
         *"sd"* | *"vd"* )
             P1="1"
@@ -105,14 +114,14 @@ if echo "$DRIVES" | grep -x "$DRIVE" &> /dev/null; then
             ;;
         * )
             log "Only HDD or SSD. Aborting." err
-            usage
+            help
             exit 1
             ;;
     esac
     readonly P1 P2
 else
     log "Wrong \"$1\" drive. Aborting." err
-    usage
+    help
     exit 1
 fi
 
@@ -121,7 +130,7 @@ summary ()
     if ! check-uefi; then
         if [[ "$BOOTLOADER" != "grub" ]]; then
             log "UEFI is not supported." err
-            log "Grub will be installed instead."
+            log "Grub will be installed instead." warn
             BOOTLOADER="grub"
             [ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ] && log "BIOS + grub + full drive encryption is not supported in this script because I personally would never use this combination and so I didnt want to spend more time on it" err && exit 1
         fi
@@ -525,17 +534,43 @@ deploy-init ()
     log "Looks like everything is done."
 }
 
-OPTIND=2
-while getopts s:h options
-do
-    case $options in
-        s) STAGE="$OPTARG";;
+LONG_OPTS=stage:
+SHORT_OPTS=s:
+PARSED=$(getopt --options ${SHORT_OPTS} \
+    --longoptions ${LONG_OPTS} \
+    --name "$0" \
+    -- "$@")
+eval set -- "${PARSED}"
+
+while true; do
+    case "$1" in
+        -s|--stage)
+            STAGE="$2"
+            shift 2
+            ;;
+        -h|--help)
+            help
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
         *)
-            usage
-            exit
+            echo "Error while was passing the options"
+            help
+            exit 1
             ;;
     esac
 done
+
+if [[ $# -ne 1 ]]; then
+    log "A single input file is required" err
+    help
+    exit 1
+else
+    DRIVE="$1"
+fi
 
 if [[ -n "$STAGE" ]]; then
     case $STAGE in
@@ -547,7 +582,7 @@ if [[ -n "$STAGE" ]]; then
             ;;
         *)
             log "Wrong options." err
-            usage
+            help
             exit 1
             ;;
     esac

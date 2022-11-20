@@ -50,7 +50,8 @@ SCRIPT_PATH=$(realpath -s "${BASH_SOURCE[0]}")
 SCRIPT_NAME=$(basename "$SCRIPT_PATH")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 
-DRIVE="$1"
+[[ -z "$DEBUG" ]] && DEBUG=false
+$DEBUG && set -Eeuxo pipefail
 
 ESP="/boot/efi"
 
@@ -100,30 +101,33 @@ log ()
     $DEBUG && set -ux
 }
 
-if lsblk --nodeps --noheadings --paths --raw --output NAME | grep -x "$DRIVE" &> /dev/null; then
-    case $DRIVE in
-        *"sd"* | *"vd"* )
-            P1="1"
-            P2="2"
-            #P3="3"
-            ;;
-        *"nvme"* )
-            P1="p1"
-            P2="p2"
-            #P3="p3"
-            ;;
-        * )
-            log "Only HDD or SSD. Aborting." err
-            help
-            exit 1
-            ;;
-    esac
-    readonly P1 P2
-else
-    log "Wrong \"$1\" drive. Aborting." err
-    help
-    exit 1
-fi
+extend-drive-name ()
+{
+    if lsblk --nodeps --noheadings --paths --raw --output NAME | grep -x "$DRIVE" &> /dev/null; then
+        case $DRIVE in
+            *"sd"* | *"vd"* )
+                P1="1"
+                P2="2"
+                #P3="3"
+                ;;
+            *"nvme"* )
+                P1="p1"
+                P2="p2"
+                #P3="p3"
+                ;;
+            * )
+                log "Only HDD or SSD. Aborting." err
+                help
+                exit 1
+                ;;
+        esac
+        readonly P1 P2
+    else
+        log "Wrong \"$1\" drive. Aborting." err
+        help
+        exit 1
+    fi
+}
 
 summary ()
 {
@@ -570,6 +574,7 @@ if [[ $# -ne 1 ]]; then
     exit 1
 else
     DRIVE="$1"
+    extend-drive-name "$1"
 fi
 
 if [[ -n "$STAGE" ]]; then

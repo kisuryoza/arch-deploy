@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 ##################################################### User-defined variables
-ROOT_PASSWORD="root"
 # If empty the user will not be created
 USER="alex"
-# If empty the password will not be created
-USER_PASSWORD=""
 
 HOST_NAME="arch"
 
@@ -55,7 +52,7 @@ $DEBUG && set -Eeuxo pipefail
 
 ESP="/boot/efi"
 
-readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR DRIVE ESP
+readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR ESP
 declare -a PACSTRAP_OPTIONS PKG AUR_PKG MODULES KERNEL_PARAMS
 
 source "$SCRIPT_DIR"/.package-list.bash
@@ -148,8 +145,6 @@ summary ()
     echo "                       Drive: [${BOLD}${YELLOW}${DRIVE}${ESC}]"
     echo "                        User: [${YELLOW}${USER}${ESC}]"
     echo "                   Host name: [${YELLOW}${HOST_NAME}${ESC}]"
-    echo "               Root password: [${YELLOW}${ROOT_PASSWORD}${ESC}]"
-    echo "               User password: [${YELLOW}${USER_PASSWORD}${ESC}]"
     echo "                       Setup: [${YELLOW}${SETUP}${ESC}]"
     echo "              Display Server: [${YELLOW}${DISPLAY_SERVER}${ESC}]"
     echo "                  Bootloader: [${YELLOW}${BOOTLOADER}${ESC}]"
@@ -161,12 +156,22 @@ summary ()
     echo "   Passphrase for encryption: [${YELLOW}${PASSPHRASE_FOR_ENCRYPTION}${ESC}]"
     echo "         Repository to clone: [${YELLOW}${GITCLONE}${ESC}]"
 
-    [ -z "$ROOT_PASSWORD" ] && log "Root password is a must." err && exit 1
     [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" && -z "$PASSPHRASE_FOR_ENCRYPTION" ]] && log "Passphrase for drive encryption is a must." err && exit 1
 
     local answer
     read -rp "Continue? y/n " answer
     [ "$answer" == "y" ] || exit 1
+
+    local rpass1 rpass2
+    read -rp "Enter root password" rpass1
+    [ -z "$rpass1" ] && log "no password" err && exit 1
+    read -rp "Enter root password again" rpass2
+    [ "$rpass1" == "$rpass2" ] || log "wrong passwords" err || exit 1
+    ROOT_PASSWORD="$rpass1"
+
+    local upass
+    read -rp "Enter user password (might be empty)" upass
+    USER_PASSWORD="$upass"
 
     readonly DRIVE USER HOST_NAME ROOT_PASSWORD USER_PASSWORD SETUP BOOTLOADER TIMEZONE MIRRORLIST
     readonly ENABLE_SWAP_FILE SWAP_FILE_SIZE ENABLE_FULL_DRIVE_ENCRYPTION PASSPHRASE_FOR_ENCRYPTION
@@ -538,8 +543,8 @@ deploy-init ()
     log "Looks like everything is done."
 }
 
-LONG_OPTS=stage:
-SHORT_OPTS=s:
+LONG_OPTS=stage:,help
+SHORT_OPTS=s:h
 PARSED=$(getopt --options ${SHORT_OPTS} \
     --longoptions ${LONG_OPTS} \
     --name "$0" \
@@ -573,8 +578,8 @@ if [[ $# -ne 1 ]]; then
     help
     exit 1
 else
-    DRIVE="$1"
-    extend-drive-name "$1"
+    readonly DRIVE="$1"
+    extend-drive-name "$DRIVE"
 fi
 
 if [[ -n "$STAGE" ]]; then

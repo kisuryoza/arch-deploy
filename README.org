@@ -209,6 +209,7 @@ summary ()
         TIMEZONE="UTC"
     fi
 
+    $DEBUG && set +x
     echo "Summary:"
     echo "                       Drive: [${BOLD}${YELLOW}${DRIVE}${ESC}]"
     echo "                        User: [${YELLOW}${USER}${ESC}]"
@@ -223,26 +224,32 @@ summary ()
     echo "Enable full drive encryption: [${YELLOW}${ENABLE_FULL_DRIVE_ENCRYPTION}${ESC}]"
     echo "   Passphrase for encryption: [${YELLOW}${PASSPHRASE_FOR_ENCRYPTION}${ESC}]"
     echo "         Repository to clone: [${YELLOW}${GITCLONE}${ESC}]"
+    $DEBUG && set -x
 
     local answer
     read -srp "Continue? y/n " answer
     [[ "$answer" != "y" ]] && exit 1
 
     local rpass1 rpass2
+    echo ""
     read -srp "Enter root password" rpass1
     [[ -z "$rpass1" ]] && log "no password" err 1
+    echo ""
     read -srp "Enter root password again" rpass2
     [[ "$rpass1" != "$rpass2" ]] && log "wrong passwords" err 1
     ROOT_PASSWORD="$rpass1"
 
     local upass
+    echo ""
     read -srp "Enter user password (might be empty)" upass
     USER_PASSWORD="$upass"
 
     if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
         local epass1 epass2
+        echo ""
         read -srp "Enter encryption password" epass1
         [[ -z "$epass1" ]] && log "no password" err 1
+        echo ""
         read -srp "Enter encryption password again" epass2
         [[ "$epass1" != "$epass2" ]] && log "wrong passwords" err 1
         PASSPHRASE_FOR_ENCRYPTION="$epass1"

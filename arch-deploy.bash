@@ -160,13 +160,13 @@ summary ()
 
     local answer
     read -rp "Continue? y/n " answer
-    [ "$answer" == "y" ] || exit 1
+    [[ "$answer" != "y" ]] && exit 1
 
     local rpass1 rpass2
     read -rp "Enter root password" rpass1
-    [ -z "$rpass1" ] && log "no password" err && exit 1
+    [[ -z "$rpass1" ]] && log "no password" err && exit 1
     read -rp "Enter root password again" rpass2
-    [ "$rpass1" == "$rpass2" ] || log "wrong passwords" err || exit 1
+    [[ "$rpass1" != "$rpass2" ]] && log "wrong passwords" err && exit 1
     ROOT_PASSWORD="$rpass1"
 
     local upass

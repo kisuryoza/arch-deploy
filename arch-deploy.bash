@@ -525,7 +525,7 @@ deploy-init ()
     fi
 
     log "Installing essential packages"
-    sed -Ei "s|^#?ParallelDownloads.*|ParallelDownloads = 2|" /etc/pacman.conf
+    sed -Ei "s|^#?ParallelDownloads.*|ParallelDownloads = 3|" /etc/pacman.conf
     pacman -S --needed --noconfirm git rsync
     check-cpu
     [[ "$SETUP" == "full" ]] && check-gpu

@@ -11,7 +11,7 @@ bootloader-grub ()
 
     pacstrap /mnt grub efibootmgr
 
-    if [ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]; then
+    if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
         # https://wiki.archlinux.org/title/GRUB#LUKS2
         if [[ $(cryptsetup luksDump "$DRIVE$P2" | grep "PBKDF" | awk '{print $NF}') != "pbkdf2" ]]; then
             log "Changing the hash and PBDKDF algorithms"

@@ -95,12 +95,16 @@ log ()
             printf "%s[%s]%s\n" "${BOLD}${GREEN}" "$1" "${ESC}"
             ;;
     esac
+    if [[ -n "$3" ]]; then
+        exit "$3"
+    fi
     $DEBUG && set -ux
 }
 
 extend-drive-name ()
 {
     if lsblk --nodeps --noheadings --paths --raw --output NAME | grep -x "$DRIVE" &> /dev/null; then
+        $DEBUG && set +ux
         case $DRIVE in
             *"sd"* | *"vd"* )
                 P1="1"
@@ -118,6 +122,7 @@ extend-drive-name ()
                 exit 1
                 ;;
         esac
+        $DEBUG && set -ux
         readonly P1 P2
     else
         log "Wrong \"$1\" drive. Aborting." err
@@ -133,7 +138,7 @@ summary ()
             log "UEFI is not supported." err
             log "Grub will be installed instead." warn
             BOOTLOADER="grub"
-            [ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ] && log "BIOS + grub + full drive encryption is not supported in this script because I personally would never use this combination and so I didnt want to spend more time on it" err && exit 1
+            [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]] && log "BIOS + grub + full drive encryption is not supported in this script because I personally would never use this combination and so I didnt want to spend more time on it" err 1
         fi
     fi
     if [[ -z "$TIMEZONE" ]]; then
@@ -156,22 +161,29 @@ summary ()
     echo "   Passphrase for encryption: [${YELLOW}${PASSPHRASE_FOR_ENCRYPTION}${ESC}]"
     echo "         Repository to clone: [${YELLOW}${GITCLONE}${ESC}]"
 
-    [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" && -z "$PASSPHRASE_FOR_ENCRYPTION" ]] && log "Passphrase for drive encryption is a must." err && exit 1
-
     local answer
-    read -rp "Continue? y/n " answer
+    read -srp "Continue? y/n " answer
     [[ "$answer" != "y" ]] && exit 1
 
     local rpass1 rpass2
-    read -rp "Enter root password" rpass1
-    [[ -z "$rpass1" ]] && log "no password" err && exit 1
-    read -rp "Enter root password again" rpass2
-    [[ "$rpass1" != "$rpass2" ]] && log "wrong passwords" err && exit 1
+    read -srp "Enter root password" rpass1
+    [[ -z "$rpass1" ]] && log "no password" err 1
+    read -srp "Enter root password again" rpass2
+    [[ "$rpass1" != "$rpass2" ]] && log "wrong passwords" err 1
     ROOT_PASSWORD="$rpass1"
 
     local upass
-    read -rp "Enter user password (might be empty)" upass
+    read -srp "Enter user password (might be empty)" upass
     USER_PASSWORD="$upass"
+
+    if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
+        local epass1 epass2
+        read -srp "Enter encryption password" epass1
+        [[ -z "$epass1" ]] && log "no password" err 1
+        read -srp "Enter encryption password again" epass2
+        [[ "$epass1" != "$epass2" ]] && log "wrong passwords" err 1
+        PASSPHRASE_FOR_ENCRYPTION="$epass1"
+    fi
 
     readonly DRIVE USER HOST_NAME ROOT_PASSWORD USER_PASSWORD SETUP BOOTLOADER TIMEZONE MIRRORLIST
     readonly ENABLE_SWAP_FILE SWAP_FILE_SIZE ENABLE_FULL_DRIVE_ENCRYPTION PASSPHRASE_FOR_ENCRYPTION
@@ -254,7 +266,7 @@ partitioning ()
     log "Partition table:"
     sgdisk "$DRIVE" -p
 
-    [ "$PARTITIONING_STATUS" == "error" ] && log "Errors acquired during Partitioning the drive." err && exit 1
+    [[ "$PARTITIONING_STATUS" == "error" ]] && log "Errors acquired during Partitioning the drive." err 1
 }
 
 formatting ()
@@ -269,7 +281,7 @@ formatting ()
     mkdir -p /mnt"$ESP"
     mount "$DRIVE$P1" /mnt"$ESP"
 
-    [ "$FORMATTING_STATUS" == "error" ] && log "Errors acquired during Formatting the partitions (non-crypt)." err && exit 1
+    [ "$FORMATTING_STATUS" == "error" ] && log "Errors acquired during Formatting the partitions (non-crypt)." err 1
 }
 
 drive-preparation ()
@@ -283,7 +295,7 @@ drive-preparation ()
     log "Closing the container"
     cryptsetup close to_be_wiped
 
-    [ "$WIPING_STATUS" == "error" ] && log "Errors acquired during Wiping the drive." err && exit 1
+    [[ "$WIPING_STATUS" == "error" ]] && log "Errors acquired during Wiping the drive." err 1
 }
 
 formatting-crypt ()
@@ -309,14 +321,14 @@ formatting-crypt ()
     mkdir -p /mnt"$ESP"
     mount "$DRIVE$P1" /mnt"$ESP"
 
-    [ "$FORMATTING_CRYPT_STATUS" == "error" ] && log "Errors acquired during Formatting the partitions (crypt)." err && exit 1
+    [[ "$FORMATTING_CRYPT_STATUS" == "error" ]] && log "Errors acquired during Formatting the partitions (crypt)." err 1
 }
 
 deploy-localtime ()
 {
     trap "readonly LOCALTIME_STATUS=error" ERR
     log "Configuring localtime"
-    [ -n "$TIMEZONE" ] && arch-chroot /mnt ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime
+    [[ -n "$TIMEZONE" ]] && arch-chroot /mnt ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime
     arch-chroot /mnt hwclock --systohc
 }
 
@@ -438,7 +450,7 @@ deploy-initramfs ()
         MODULES+=(dm_crypt)
     fi
 
-    [ -n "$MODULES" ] && sed -Ei "s|^MODULES=.*|MODULES=(${MODULES[*]})|" /mnt/etc/mkinitcpio.conf
+    [[ -n "$MODULES" ]] && sed -Ei "s|^MODULES=.*|MODULES=(${MODULES[*]})|" /mnt/etc/mkinitcpio.conf
     if [[ -x /usr/bin/lz4 ]]; then
         # because lz4 is faster
         sed -Ei "s|^#COMPRESSION=\"lz4\"|COMPRESSION=\"lz4\"|" /mnt/etc/mkinitcpio.conf
@@ -460,7 +472,7 @@ deploy-dotfiles ()
 deploy-unmount ()
 {
     log "Unmounting /mnt"
-    [ "$ENABLE_SWAP_FILE" == "yes" ] && swapoff /mnt/swapfile
+    [[ "$ENABLE_SWAP_FILE" == "yes" ]] && swapoff /mnt/swapfile
     umount -R /mnt || log "Error - Failed to umount /mnt" err
     if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
         log "Closing the encrypted partition"
@@ -470,14 +482,14 @@ deploy-unmount ()
 
 check-errors ()
 {
-    [ "$LOCALTIME_STATUS" == "error" ] && log "Errors acquired during Localtime configuration." err
-    [ "$LOCALIZATION_STATUS" == "error" ] && log "Errors acquired during Localization configuration." err
-    [ "$NETWORK_STATUS" == "error" ] && log "Errors acquired during Network configuration." err
-    [ "$USERS_STATUS" == "error" ] && log "Errors acquired during Creating user and setting passwords." err
-    [ "$SWAP_STATUS" == "error" ] && log "Errors acquired during Creating a swap file." err
-    [ "$INITRAMFS_STATUS" == "error" ] && log "Errors acquired during Generating of initramfs images." err
-    [ "$DOTFILES_STATUS" == "error" ] && log "Errors acquired during Cloning dot-files." err
-    [ "$BOOTLOADER_STATUS" == "error" ] && log "Errors acquired during Installation of the bootloader." err
+    [[ "$LOCALTIME_STATUS" == "error" ]] && log "Errors acquired during Localtime configuration." err
+    [[ "$LOCALIZATION_STATUS" == "error" ]] && log "Errors acquired during Localization configuration." err
+    [[ "$NETWORK_STATUS" == "error" ]] && log "Errors acquired during Network configuration." err
+    [[ "$USERS_STATUS" == "error" ]] && log "Errors acquired during Creating user and setting passwords." err
+    [[ "$SWAP_STATUS" == "error" ]] && log "Errors acquired during Creating a swap file." err
+    [[ "$INITRAMFS_STATUS" == "error" ]] && log "Errors acquired during Generating of initramfs images." err
+    [[ "$DOTFILES_STATUS" == "error" ]] && log "Errors acquired during Cloning dot-files." err
+    [[ "$BOOTLOADER_STATUS" == "error" ]] && log "Errors acquired during Installation of the bootloader." err
 }
 
 deploy-init ()
@@ -485,7 +497,7 @@ deploy-init ()
     summary
 
     log "Testing ethernet connection"
-    ping archlinux.org -c 2 &> /dev/null || log "No ethernet connection. Aborting." err || exit 1
+    ping archlinux.org -c 2 &> /dev/null || log "No ethernet connection. Aborting." err 1
 
     log "Updating the system clock"
     timedatectl set-ntp true
@@ -518,10 +530,10 @@ deploy-init ()
     sed -Ei "s|^#?ParallelDownloads.*|ParallelDownloads = 2|" /etc/pacman.conf
     pacman -S --needed --noconfirm git rsync
     check-cpu
-    [ "$SETUP" == "full" ] && check-gpu
+    [[ "$SETUP" == "full" ]] && check-gpu
     if ! pacstrap "${PACSTRAP_OPTIONS[@]}" /mnt "${PKG[@]}"; then
         log "Errors acquired during downloading. Trying again." err
-        pacstrap "${PACSTRAP_OPTIONS[@]}" /mnt "${PKG[@]}" || log "Problems with ethernet connection. Aborting." err || exit 1
+        pacstrap "${PACSTRAP_OPTIONS[@]}" /mnt "${PKG[@]}" || log "Problems with ethernet connection. Aborting." err 1
     fi
 
     log "Generating fstab"
@@ -551,6 +563,7 @@ PARSED=$(getopt --options ${SHORT_OPTS} \
     -- "$@")
 eval set -- "${PARSED}"
 
+$DEBUG && set +ux
 while true; do
     case "$1" in
         -s|--stage)
@@ -559,7 +572,7 @@ while true; do
             ;;
         -h|--help)
             help
-            exit 0
+            exit 0]
             ;;
         --)
             shift
@@ -572,6 +585,7 @@ while true; do
             ;;
     esac
 done
+$DEBUG && set -ux
 
 if [[ $# -ne 1 ]]; then
     log "A single input file is required" err
@@ -583,6 +597,7 @@ else
 fi
 
 if [[ -n "$STAGE" ]]; then
+    $DEBUG && set +ux
     case $STAGE in
         "init") deploy-init;;
         "boot")
@@ -596,6 +611,7 @@ if [[ -n "$STAGE" ]]; then
             exit 1
             ;;
     esac
+    $DEBUG && set -ux
 else
     deploy-init
 fi

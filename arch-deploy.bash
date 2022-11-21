@@ -48,26 +48,13 @@ SCRIPT_NAME=$(basename "$SCRIPT_PATH")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 
 [[ -z "$DEBUG" ]] && DEBUG=false
-$DEBUG && set -Eeuxo pipefail
+$DEBUG && set -Eexo pipefail
 
 ESP="/boot/efi"
 STAGE="init"
 
 readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR ESP
 declare -a PACSTRAP_OPTIONS PKG AUR_PKG MODULES KERNEL_PARAMS
-
-STATUS_PARTITIONING="nil"
-STATUS_FORMATING="nil"
-STATUS_WIPING="nil"
-STATUS_FORMATTING_CRYPT="nil"
-STATUS_LOCALTIME="nil"
-STATUS_LOCALIZATION="nil"
-STATUS_NETWORK="nil"
-STATUS_USERS="nil"
-STATUS_SWAP="nil"
-STATUS_INITRAMFS="nil"
-STATUS_DOTFILES="nil"
-STATUS_BOOTLOADER="nil"
 
 source "$SCRIPT_DIR"/.package-list.bash
 
@@ -85,7 +72,7 @@ Options:
 " "$SCRIPT_NAME"
 }
 
-$DEBUG && set +ux
+$DEBUG && set +x
 BOLD=$(tput bold)
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
@@ -93,11 +80,11 @@ YELLOW=$(tput setaf 3)
 BLUE=$(tput setaf 4)
 ESC=$(tput sgr0)
 readonly BOLD RED GREEN YELLOW BLUE ESC
-$DEBUG && set -ux
+$DEBUG && set -x
 
 log ()
 {
-    $DEBUG && set +ux
+    $DEBUG && set +x
     case "$2" in
         "err")
             printf "%s[%s]%s\n" "${BOLD}${RED}" "$1" "${ESC}" >&2
@@ -112,13 +99,12 @@ log ()
     if [[ -n "$3" ]]; then
         exit "$3"
     fi
-    $DEBUG && set -ux
+    $DEBUG && set -x
 }
 
 extend-drive-name ()
 {
     if lsblk --nodeps --noheadings --paths --raw --output NAME | grep -x "$DRIVE" &> /dev/null; then
-        $DEBUG && set +ux
         case $DRIVE in
             *"sd"* | *"vd"* )
                 P1="1"
@@ -136,7 +122,6 @@ extend-drive-name ()
                 exit 1
                 ;;
         esac
-        $DEBUG && set -ux
         readonly P1 P2
     else
         log "Wrong \"$1\" drive. Aborting." err
@@ -204,7 +189,9 @@ summary ()
     readonly GITCLONE
 }
 
+$DEBUG && set +x
 source "$SCRIPT_DIR"/.bootloaders.bash
+$DEBUG && set -x
 deploy-bootloader ()
 {
     if [[ -n "$BOOTLOADER" ]]; then
@@ -295,7 +282,7 @@ formatting ()
     mkdir -p /mnt"$ESP"
     mount "$DRIVE$P1" /mnt"$ESP"
 
-    [ "$STATUS_FORMATING" == "error" ] && log "Errors acquired during Formatting the partitions (non-crypt)." err 1
+    [[ "$STATUS_FORMATING" == "error" ]] && log "Errors acquired during Formatting the partitions (non-crypt)." err 1
 }
 
 drive-preparation ()
@@ -577,7 +564,6 @@ PARSED=$(getopt --options ${SHORT_OPTS} \
     -- "$@")
 eval set -- "${PARSED}"
 
-$DEBUG && set +ux
 while true; do
     case "$1" in
         -s|--stage)
@@ -599,7 +585,6 @@ while true; do
             ;;
     esac
 done
-$DEBUG && set -ux
 
 if [[ $# -ne 1 ]]; then
     log "A single input file is required" err
@@ -610,7 +595,6 @@ else
     extend-drive-name "$DRIVE"
 fi
 
-$DEBUG && set +ux
 case $STAGE in
     "init") deploy-init;;
     "boot")
@@ -624,4 +608,3 @@ case $STAGE in
         exit 1
         ;;
 esac
-$DEBUG && set -ux

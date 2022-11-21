@@ -163,30 +163,31 @@ summary ()
     $DEBUG && set -x
 
     local answer
-    read -srp "Continue? y/n " answer
+    read -rp "Continue? y/n " answer
+    echo
     [[ "$answer" != "y" ]] && exit 1
 
     local rpass1 rpass2
-    echo ""
     read -srp "Enter root password" rpass1
+    echo
     [[ -z "$rpass1" ]] && log "no password" err 1
-    echo ""
     read -srp "Enter root password again" rpass2
+    echo
     [[ "$rpass1" != "$rpass2" ]] && log "wrong passwords" err 1
     ROOT_PASSWORD="$rpass1"
 
     local upass
-    echo ""
     read -srp "Enter user password (might be empty)" upass
+    echo
     USER_PASSWORD="$upass"
 
     if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
         local epass1 epass2
-        echo ""
         read -srp "Enter encryption password" epass1
+        echo
         [[ -z "$epass1" ]] && log "no password" err 1
-        echo ""
         read -srp "Enter encryption password again" epass2
+        echo
         [[ "$epass1" != "$epass2" ]] && log "wrong passwords" err 1
         PASSPHRASE_FOR_ENCRYPTION="$epass1"
     fi

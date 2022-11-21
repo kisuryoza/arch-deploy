@@ -51,6 +51,7 @@ SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 $DEBUG && set -Eeuxo pipefail
 
 ESP="/boot/efi"
+STAGE="init"
 
 readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR ESP
 declare -a PACSTRAP_OPTIONS PKG AUR_PKG MODULES KERNEL_PARAMS
@@ -572,7 +573,7 @@ while true; do
             ;;
         -h|--help)
             help
-            exit 0]
+            exit 0
             ;;
         --)
             shift
@@ -596,22 +597,18 @@ else
     extend-drive-name "$DRIVE"
 fi
 
-if [[ -n "$STAGE" ]]; then
-    $DEBUG && set +ux
-    case $STAGE in
-        "init") deploy-init;;
-        "boot")
-            deploy-bootloader
-            deploy-unmount
-            check-errors
-            ;;
-        *)
-            log "Wrong options." err
-            help
-            exit 1
-            ;;
-    esac
-    $DEBUG && set -ux
-else
-    deploy-init
-fi
+$DEBUG && set +ux
+case $STAGE in
+    "init") deploy-init;;
+    "boot")
+        deploy-bootloader
+        deploy-unmount
+        check-errors
+        ;;
+    *)
+        log "Wrong options." err
+        help
+        exit 1
+        ;;
+esac
+$DEBUG && set -ux

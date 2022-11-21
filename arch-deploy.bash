@@ -56,6 +56,10 @@ STAGE="init"
 readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR ESP
 declare -a PACSTRAP_OPTIONS PKG AUR_PKG MODULES KERNEL_PARAMS
 
+STATUS_PARTITIONING="nil"
+STATUS_FORMATING="nil"
+STATUS_WIPING="nil"
+STATUS_FORMATTING_CRYPT="nil"
 STATUS_LOCALTIME="nil"
 STATUS_LOCALIZATION="nil"
 STATUS_NETWORK="nil"
@@ -261,7 +265,7 @@ check-gpu ()
 
 partitioning ()
 {
-    trap "readonly PARTITIONING_STATUS=error" ERR
+    trap "readonly STATUS_PARTITIONING=error" ERR
     log "Partitioning the drive"
 
     log "Clearing existing partition tables"
@@ -276,12 +280,12 @@ partitioning ()
     log "Partition table:"
     sgdisk "$DRIVE" -p
 
-    [[ "$PARTITIONING_STATUS" == "error" ]] && log "Errors acquired during Partitioning the drive." err 1
+    [[ "$STATUS_PARTITIONING" == "error" ]] && log "Errors acquired during Partitioning the drive." err 1
 }
 
 formatting ()
 {
-    trap "readonly FORMATTING_STATUS=error" ERR
+    trap "readonly STATUS_FORMATING=error" ERR
     log "Formatting the partitions (non-crypt)"
     yes | mkfs.fat -F 32 "$DRIVE$P1"
     yes | mkfs.ext4 "$DRIVE$P2"
@@ -291,12 +295,12 @@ formatting ()
     mkdir -p /mnt"$ESP"
     mount "$DRIVE$P1" /mnt"$ESP"
 
-    [ "$FORMATTING_STATUS" == "error" ] && log "Errors acquired during Formatting the partitions (non-crypt)." err 1
+    [ "$STATUS_FORMATING" == "error" ] && log "Errors acquired during Formatting the partitions (non-crypt)." err 1
 }
 
 drive-preparation ()
 {
-    trap "readonly WIPING_STATUS=error" ERR
+    trap "readonly STATUS_WIPING=error" ERR
 
     log "Creating a temporary encrypted container on the drive"
     echo "YES" | cryptsetup open --type plain --key-file /dev/urandom "$DRIVE" to_be_wiped || exit 1
@@ -305,12 +309,12 @@ drive-preparation ()
     log "Closing the container"
     cryptsetup close to_be_wiped
 
-    [[ "$WIPING_STATUS" == "error" ]] && log "Errors acquired during Wiping the drive." err 1
+    [[ "$STATUS_WIPING" == "error" ]] && log "Errors acquired during Wiping the drive." err 1
 }
 
 formatting-crypt ()
 {
-    trap "readonly FORMATTING_CRYPT_STATUS=error" ERR
+    trap "readonly STATUS_FORMATTING_CRYPT=error" ERR
     log "Formatting the partitions (crypt)"
 
     yes | mkfs.fat -F 32 "$DRIVE$P1"
@@ -331,7 +335,7 @@ formatting-crypt ()
     mkdir -p /mnt"$ESP"
     mount "$DRIVE$P1" /mnt"$ESP"
 
-    [[ "$FORMATTING_CRYPT_STATUS" == "error" ]] && log "Errors acquired during Formatting the partitions (crypt)." err 1
+    [[ "$STATUS_FORMATTING_CRYPT" == "error" ]] && log "Errors acquired during Formatting the partitions (crypt)." err 1
 }
 
 deploy-localtime ()

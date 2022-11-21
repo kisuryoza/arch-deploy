@@ -4,7 +4,7 @@
 
 bootloader-grub ()
 {
-    trap "readonly BOOTLOADER_STATUS=error" ERR
+    trap "readonly STATUS_BOOTLOADER=error" ERR
     log "Begining the grub's installation"
 
     rm -rf /mnt"${ESP:?}"/*
@@ -61,7 +61,7 @@ bootloader-grub ()
 
 bootloader-unified-kernel-image ()
 {
-    trap "readonly BOOTLOADER_STATUS=error" ERR
+    trap "readonly STATUS_BOOTLOADER=error" ERR
     log "Creating Unified Kernel Image"
 
     rm -rf /mnt"${ESP:?}"/*

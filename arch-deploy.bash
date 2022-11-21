@@ -56,6 +56,15 @@ STAGE="init"
 readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR ESP
 declare -a PACSTRAP_OPTIONS PKG AUR_PKG MODULES KERNEL_PARAMS
 
+STATUS_LOCALTIME="nil"
+STATUS_LOCALIZATION="nil"
+STATUS_NETWORK="nil"
+STATUS_USERS="nil"
+STATUS_SWAP="nil"
+STATUS_INITRAMFS="nil"
+STATUS_DOTFILES="nil"
+STATUS_BOOTLOADER="nil"
+
 source "$SCRIPT_DIR"/.package-list.bash
 
 help ()
@@ -327,7 +336,7 @@ formatting-crypt ()
 
 deploy-localtime ()
 {
-    trap "readonly LOCALTIME_STATUS=error" ERR
+    trap "readonly STATUS_LOCALTIME=error" ERR
     log "Configuring localtime"
     [[ -n "$TIMEZONE" ]] && arch-chroot /mnt ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime
     arch-chroot /mnt hwclock --systohc
@@ -335,7 +344,7 @@ deploy-localtime ()
 
 deploy-localization ()
 {
-    trap "readonly LOCALIZATION_STATUS=error" ERR
+    trap "readonly STATUS_LOCALIZATION=error" ERR
     log "Configuring localization"
     sed -Ei "s|^#en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|" /mnt/etc/locale.gen
     arch-chroot /mnt locale-gen
@@ -347,7 +356,7 @@ deploy-localization ()
 
 deploy-network ()
 {
-    trap "readonly NETWORK_STATUS=error" ERR
+    trap "readonly STATUS_NETWORK=error" ERR
     log "Network configuration"
     echo "$HOST_NAME" > /mnt/etc/hostname
     {
@@ -380,7 +389,7 @@ deploy-apparmor ()
 
 deploy-users ()
 {
-    trap "readonly USERS_STATUS=error" ERR
+    trap "readonly STATUS_USERS=error" ERR
     log "Setting root password"
     arch-chroot /mnt /bin/bash -c "echo root:$ROOT_PASSWORD | chpasswd" || log "Error - root password" err
 
@@ -411,7 +420,7 @@ deploy-users ()
 
 deploy-swap ()
 {
-    trap "readonly SWAP_STATUS=error" ERR
+    trap "readonly STATUS_SWAP=error" ERR
     if [[ "$ENABLE_SWAP_FILE" == "yes" ]]; then
         log "Creating a swap file"
 
@@ -436,7 +445,7 @@ deploy-swap ()
 
 deploy-initramfs ()
 {
-    trap "readonly INITRAMFS_STATUS=error" ERR
+    trap "readonly STATUS_INITRAMFS=error" ERR
     log "Generating initramfs images"
 
     # See the reference
@@ -463,7 +472,7 @@ deploy-initramfs ()
 
 deploy-dotfiles ()
 {
-    trap "readonly DOTFILES_STATUS=error" ERR
+    trap "readonly STATUS_DOTFILES=error" ERR
     if [[ -n "$GITCLONE" && -n "$USER" ]]; then
         log "Cloning dot-files"
         cd /mnt/home/"$USER" && git clone "$GITCLONE"
@@ -483,14 +492,14 @@ deploy-unmount ()
 
 check-errors ()
 {
-    [[ "$LOCALTIME_STATUS" == "error" ]] && log "Errors acquired during Localtime configuration." err
-    [[ "$LOCALIZATION_STATUS" == "error" ]] && log "Errors acquired during Localization configuration." err
-    [[ "$NETWORK_STATUS" == "error" ]] && log "Errors acquired during Network configuration." err
-    [[ "$USERS_STATUS" == "error" ]] && log "Errors acquired during Creating user and setting passwords." err
-    [[ "$SWAP_STATUS" == "error" ]] && log "Errors acquired during Creating a swap file." err
-    [[ "$INITRAMFS_STATUS" == "error" ]] && log "Errors acquired during Generating of initramfs images." err
-    [[ "$DOTFILES_STATUS" == "error" ]] && log "Errors acquired during Cloning dot-files." err
-    [[ "$BOOTLOADER_STATUS" == "error" ]] && log "Errors acquired during Installation of the bootloader." err
+    [[ "$STATUS_LOCALTIME" == "error" ]] && log "Errors acquired during Localtime configuration." err
+    [[ "$STATUS_LOCALIZATION" == "error" ]] && log "Errors acquired during Localization configuration." err
+    [[ "$STATUS_NETWORK" == "error" ]] && log "Errors acquired during Network configuration." err
+    [[ "$STATUS_USERS" == "error" ]] && log "Errors acquired during Creating user and setting passwords." err
+    [[ "$STATUS_SWAP" == "error" ]] && log "Errors acquired during Creating a swap file." err
+    [[ "$STATUS_INITRAMFS" == "error" ]] && log "Errors acquired during Generating of initramfs images." err
+    [[ "$STATUS_DOTFILES" == "error" ]] && log "Errors acquired during Cloning dot-files." err
+    [[ "$STATUS_BOOTLOADER" == "error" ]] && log "Errors acquired during Installation of the bootloader." err
 }
 
 deploy-init ()

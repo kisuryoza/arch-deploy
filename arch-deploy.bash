@@ -47,9 +47,6 @@ SCRIPT_PATH=$(realpath -s "${BASH_SOURCE[0]}")
 SCRIPT_NAME=$(basename "$SCRIPT_PATH")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 
-[[ -z "$DEBUG" ]] && DEBUG=false
-$DEBUG && set -Eexo pipefail
-
 ESP="/boot/efi"
 STAGE="init"
 
@@ -72,7 +69,6 @@ Options:
 " "$SCRIPT_NAME"
 }
 
-$DEBUG && set +x
 BOLD=$(tput bold)
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
@@ -80,11 +76,9 @@ YELLOW=$(tput setaf 3)
 BLUE=$(tput setaf 4)
 ESC=$(tput sgr0)
 readonly BOLD RED GREEN YELLOW BLUE ESC
-$DEBUG && set -x
 
 log ()
 {
-    $DEBUG && set +x
     case "$2" in
         "err")
             printf "%s[%s]%s\n" "${BOLD}${RED}" "$1" "${ESC}" >&2
@@ -99,7 +93,6 @@ log ()
     if [[ -n "$3" ]]; then
         exit "$3"
     fi
-    $DEBUG && set -x
 }
 
 extend-drive-name ()
@@ -145,7 +138,6 @@ summary ()
         TIMEZONE="UTC"
     fi
 
-    $DEBUG && set +x
     echo "Summary:"
     echo "                       Drive: [${BOLD}${YELLOW}${DRIVE}${ESC}]"
     echo "                        User: [${YELLOW}${USER}${ESC}]"
@@ -160,7 +152,6 @@ summary ()
     echo "Enable full drive encryption: [${YELLOW}${ENABLE_FULL_DRIVE_ENCRYPTION}${ESC}]"
     echo "   Passphrase for encryption: [${YELLOW}${PASSPHRASE_FOR_ENCRYPTION}${ESC}]"
     echo "         Repository to clone: [${YELLOW}${GITCLONE}${ESC}]"
-    $DEBUG && set -x
 
     local answer
     read -rp "Continue? y/n " answer
@@ -197,9 +188,7 @@ summary ()
     readonly GITCLONE
 }
 
-$DEBUG && set +x
 source "$SCRIPT_DIR"/.bootloaders.bash
-$DEBUG && set -x
 deploy-bootloader ()
 {
     if [[ -n "$BOOTLOADER" ]]; then

@@ -19,63 +19,32 @@ Though I hope somebody find in here something helpfull.
 
 * Installation
 Most likely Arch image doesn't ship ~git~ so it needs to be installed first.
-#+begin_src sh :tangle no
+#+begin_src bash :tangle no
 pacman -Sy git
 #+end_src
 Then clone the repository and execute the script.
-#+begin_src sh :tangle no
+#+begin_src bash :tangle no
 git clone https://gitlab.com/justAlex0/arch-deploy.git
 #+end_src
 Or put it on a USB stick and use it from there.
 
 * Usage
 Open the script and change default variables on the top in [[#user-defined-variables][User-defined variables]] section.
-#+begin_src sh :tangle no
+#+begin_src bash :tangle no
 vim arch-deploy/arch-deploy.bash
 #+end_src
 To begin the installation you need to specify the drive.
-#+begin_src sh :tangle no
+#+begin_src bash :tangle no
 ./arch-deploy/arch-deploy.bash /dev/sda
 #+end_src
 Also you might want to write all the output to a file in case of debugging.
-#+begin_src sh :tangle no
+#+begin_src bash :tangle no
 ./arch-deploy/arch-deploy.bash /dev/sda 2>&1 | tee log.txt
 #+end_src
 
-* Table of Contents :TOC:
-- [[#installation][Installation]]
-- [[#usage][Usage]]
-- [[#user-defined-variables][User-defined variables]]
-- [[#script-defined-variables][Script-defined variables]]
-- [[#miscellaneous-functions][Miscellaneous Functions]]
-  - [[#print-help][Print Help]]
-  - [[#output-log][Output log]]
-  - [[#get-the-names-of-partition-parts][Get the Names of Partition Parts]]
-  - [[#output-summary][Output Summary]]
-  - [[#choose-bootloader][Choose Bootloader]]
-  - [[#hardwares-checks][Hardwares Checks]]
-- [[#drive-partitioning][Drive Partitioning]]
-  - [[#partition-the-drive][Partition the Drive]]
-  - [[#non-crypt][Non-Crypt]]
-  - [[#crypt][Crypt]]
-- [[#deploying-functions][Deploying Functions]]
-  - [[#configuring-localtime][Configuring localtime]]
-  - [[#configuring-localization][Configuring localization]]
-  - [[#network-configuration][Network configuration]]
-  - [[#apparmor-enabling][AppArmor enabling]]
-  - [[#users-and-passwords][Users and Passwords]]
-  - [[#creating-a-swap-file][Creating a Swap File]]
-  - [[#generating-initramfs-images][Generating initramfs images]]
-  - [[#cloning-personal-dot-files][Cloning personal dot-files]]
-  - [[#unmount][Unmount]]
-  - [[#check-if-any-errors-acquired][Check if any errors acquired]]
-- [[#begin-deploying][Begin Deploying]]
-- [[#choosing-installation-step][Choosing Installation Step]]
-- [[#todos-02][TODOs]]
-
 * User-defined variables
 These variables the user needs to change
-#+begin_src sh :shebang #!/usr/bin/env bash :eval no
+#+begin_src bash :shebang #!/usr/bin/env bash
 ##################################################### User-defined variables
 # If empty the user will not be created
 USER="alex"
@@ -123,7 +92,7 @@ GITCLONE="https://gitlab.com/justAlex0/dot-files"
 
 * Script-defined variables
 These are global variables
-#+begin_src sh :eval no
+#+begin_src bash
 SCRIPT_PATH=$(realpath -s "${BASH_SOURCE[0]}")
 SCRIPT_NAME=$(basename "$SCRIPT_PATH")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
@@ -151,7 +120,7 @@ source "$SCRIPT_DIR"/.package-list.bash
 
 * Miscellaneous Functions
 ** Print Help
-#+begin_src sh :eval no
+#+begin_src bash
 help ()
 {
     printf "The script installs Arch Linux
@@ -168,7 +137,7 @@ Options:
 #+end_src
 
 ** Output log
-#+begin_src sh :eval no
+#+begin_src bash
 $DEBUG && set +ux
 BOLD=$(tput bold)
 RED=$(tput setaf 1)
@@ -202,7 +171,7 @@ log ()
 
 ** Get the Names of Partition Parts
 This extends sda to sda1 and sda2, nvme0n1 to nvme0n1p1 and nvme0n1p2 and will be used next by [[#drive-partitioning][Drive Partitioning]] and during bootloader's installation.
-#+begin_src sh :eval no
+#+begin_src bash
 extend-drive-name ()
 {
     if lsblk --nodeps --noheadings --paths --raw --output NAME | grep -x "$DRIVE" &> /dev/null; then
@@ -235,7 +204,7 @@ extend-drive-name ()
 #+end_src
 
 ** Output Summary
-#+begin_src sh :eval no
+#+begin_src bash
 summary ()
 {
     if ! check-uefi; then
@@ -297,7 +266,7 @@ summary ()
 #+end_src
 
 ** Choose Bootloader
-#+begin_src sh :eval no
+#+begin_src bash
 source "$SCRIPT_DIR"/.bootloaders.bash
 deploy-bootloader ()
 {
@@ -316,7 +285,7 @@ deploy-bootloader ()
 
 ** Hardwares Checks
 *** Check UEFI
-#+begin_src sh :eval no
+#+begin_src bash
 check-uefi ()
 {
     [ -d /sys/firmware/efi/ ]
@@ -324,7 +293,7 @@ check-uefi ()
 #+end_src
 
 *** Check CPU
-#+begin_src sh :eval no
+#+begin_src bash
 check-cpu ()
 {
     local CPU_VENDOR
@@ -341,7 +310,7 @@ check-cpu ()
 #+end_src
 
 *** Check GPU
-#+begin_src sh :eval no
+#+begin_src bash
 check-gpu ()
 {
     local GRAPHICS
@@ -372,7 +341,7 @@ Reference:
 
 * Drive Partitioning
 ** Partition the Drive
-#+begin_src sh :eval no
+#+begin_src bash
 partitioning ()
 {
     trap "readonly PARTITIONING_STATUS=error" ERR
@@ -396,7 +365,7 @@ partitioning ()
 
 ** Non-Crypt
 *** Format and Mount the Partitions
-#+begin_src sh :eval no
+#+begin_src bash
 formatting ()
 {
     trap "readonly FORMATTING_STATUS=error" ERR
@@ -415,7 +384,7 @@ formatting ()
 
 ** Crypt
 *** Securely wipe the drive before Partitioning and Encrypting the drive
-#+begin_src sh :eval no
+#+begin_src bash
 drive-preparation ()
 {
     trap "readonly WIPING_STATUS=error" ERR
@@ -434,7 +403,7 @@ Reference:
 - [[https://wiki.archlinux.org/title/Dm-crypt/Drive_preparation][Arch Wiki: dm-crypt/Drive preparation]]
 
 *** Format and Mount the Partitions
-#+begin_src sh :eval no
+#+begin_src bash
 formatting-crypt ()
 {
     trap "readonly FORMATTING_CRYPT_STATUS=error" ERR
@@ -468,7 +437,7 @@ References:
 
 * Deploying Functions
 ** Configuring localtime
-#+begin_src sh :eval no
+#+begin_src bash
 deploy-localtime ()
 {
     trap "readonly STATUS_LOCALTIME=error" ERR
@@ -479,7 +448,7 @@ deploy-localtime ()
 #+end_src
 
 ** Configuring localization
-#+begin_src sh :eval no
+#+begin_src bash
 deploy-localization ()
 {
     trap "readonly STATUS_LOCALIZATION=error" ERR
@@ -494,7 +463,7 @@ deploy-localization ()
 #+end_src
 
 ** Network configuration
-#+begin_src sh :eval no
+#+begin_src bash
 deploy-network ()
 {
     trap "readonly STATUS_NETWORK=error" ERR
@@ -525,7 +494,7 @@ References:
 - [[https://wiki.archlinux.org/title/Iwd#No_DHCP_in_AP_mode][Arch Wiki: No DHCP in AP mode]]
 
 ** AppArmor enabling
-#+begin_src sh :eval no
+#+begin_src bash
 deploy-apparmor ()
 {
     if [[ -x /mnt/usr/bin/aa-status ]]; then
@@ -536,7 +505,7 @@ deploy-apparmor ()
 #+end_src
 
 ** Users and Passwords
-#+begin_src sh :eval no
+#+begin_src bash
 deploy-users ()
 {
     trap "readonly STATUS_USERS=error" ERR
@@ -570,7 +539,7 @@ deploy-users ()
 #+end_src
 
 ** Creating a Swap File
-#+begin_src sh :eval no
+#+begin_src bash
 deploy-swap ()
 {
     trap "readonly STATUS_SWAP=error" ERR
@@ -600,7 +569,7 @@ References:
 - [[https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate][Arch Wiki: Hibernation into swap file]]
 
 ** Generating initramfs images
-#+begin_src sh :eval no
+#+begin_src bash
 deploy-initramfs ()
 {
     trap "readonly STATUS_INITRAMFS=error" ERR
@@ -632,7 +601,7 @@ References:
 - [[https://wiki.archlinux.org/title/improving_performance#Watchdogs][Arch Wiki: Watchdogs]]
 
 ** Cloning personal dot-files
-#+begin_src sh :eval no
+#+begin_src bash
 deploy-dotfiles ()
 {
     trap "readonly STATUS_DOTFILES=error" ERR
@@ -644,7 +613,7 @@ deploy-dotfiles ()
 #+end_src
 
 ** Unmount
-#+begin_src sh :eval no
+#+begin_src bash
 deploy-unmount ()
 {
     log "Unmounting /mnt"
@@ -658,7 +627,7 @@ deploy-unmount ()
 #+end_src
 
 ** Check if any errors acquired
-#+begin_src sh :eval no
+#+begin_src bash
 check-errors ()
 {
     [[ "$STATUS_LOCALTIME" == "error" ]] && log "Errors acquired during Localtime configuration." err
@@ -673,7 +642,7 @@ check-errors ()
 #+end_src
 
 * Begin Deploying
-#+begin_src sh :eval no
+#+begin_src bash
 deploy-init ()
 {
     summary
@@ -738,8 +707,8 @@ deploy-init ()
 }
 #+end_src
 
-* TODO Choosing Installation Step
-#+begin_src sh :eval no
+* Choosing Installation Step
+#+begin_src bash
 LONG_OPTS=stage:,help
 SHORT_OPTS=s:h
 PARSED=$(getopt --options ${SHORT_OPTS} \
@@ -798,6 +767,6 @@ esac
 $DEBUG && set -ux
 #+end_src
 
-* TODOs [0/2]
+* TODO [0/2]
 + [ ] Auto-mounting on choosing the boot stage
 + [ ] Recheck wayland support as soon as i switch away from nvidia

@@ -34,12 +34,13 @@ PKG+=(neofetch)     # system information tool
 PKG+=(htop)         # interactive process viewer
 PKG+=(bottom)       # A customizable cross-platform graphical process/system monitor for the terminal.
 PKG+=(sysstat)      # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
+PKG+=(ntfs-3g)      # NTFS filesystem driver and utilities
 
 
 if [[ "$SETUP" == "full" ]];
 then
     PKG+=(neovim fennel)
-    PKG+=(emacs ccls)
+    # PKG+=(emacs ccls)
     PKG+=(npm)
     PKG+=(cppcheck ctags)
     PKG+=(xdg-desktop-portal)
@@ -95,7 +96,7 @@ PKG+=(songrec)          # An open-source, unofficial Shazam client for Linux
 #############################################-- Miscellaneous utilities
 ##------------------------------------------------------ Ethernet stuff
 
-PKG+=(openvpn dnscrypt-proxy tor)
+PKG+=(openvpn dnscrypt-proxy dnsmasq openresolv tor)
 PKG+=(syncthing)    # file synchronization client/server application
 
 ##------------------------------------------------------- File managing
@@ -142,6 +143,7 @@ PKG+=(kvantum lxappearance-gtk3)
 PKG+=(python-pywal breeze-icons)
 # Fonts
 PKG+=(ttf-dejavu)
+PKG+=(ttf-jetbrains-mono)
 PKG+=(ttf-liberation)       # Font family which aims at metric compatibility with Arial, Times New Roman, and Courier New
 PKG+=(ttc-iosevka-ss14)     # JetBrains Mono Style
 PKG+=(ttc-iosevka-aile)     # Sans style

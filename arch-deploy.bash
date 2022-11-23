@@ -214,10 +214,10 @@ check-cpu ()
     CPU_VENDOR=$(awk -F ": " '/vendor_id/ {print $NF; exit}' /proc/cpuinfo)
     case "$CPU_VENDOR" in
         "GenuineIntel" )
-            PKG+=(intel-ucode)
+            PKG+=(intel-ucode xf86-video-intel)
             ;;
         "AuthenticAMD" )
-            PKG+=(amd-ucode)
+            PKG+=(amd-ucode xf86-video-amdgpu)
             ;;
     esac
 }
@@ -236,7 +236,7 @@ check-gpu ()
             MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
             ;;
         *AMD* | *ATI* )
-            PKG+=(xf86-video-amdgpu xf86-video-ati libva-mesa-driver vulkan-radeon)
+            PKG+=(xf86-video-ati libva-mesa-driver vulkan-radeon)
             PKG+=(vulkan-icd-loader)
             PKG+=(nvtop)
             ;;
@@ -509,29 +509,16 @@ deploy-init ()
         formatting
     fi
 
-    if [[ "$IS_INSTALLING_FROM_EXISTING_ARCH" == "yes" ]]; then
-        PACSTRAP_OPTIONS=(-c)
-    else
-        log "Retrieving and ranking the latest mirrorlist"
-        pacman -Sy --needed --noconfirm pacman-contrib
-        reflector --country "$MIRRORLIST" \
-            --threads 4 \
-            --latest 20 \
-            --protocol http,https \
-            --sort rate \
-            --save /etc/pacman.d/mirrorlist.backup
-        rankmirrors -n 10 /etc/pacman.d/mirrorlist.backup > /etc/pacman.d/mirrorlist
-        pacman -Syy
-    fi
-
     log "Installing essential packages"
+    sed -Ei 's|^#?Color|Color|' /etc/pacman.conf
     sed -Ei "s|^#?ParallelDownloads.*|ParallelDownloads = 3|" /etc/pacman.conf
-    pacman -S --needed --noconfirm git rsync
+    sed -zi 's|#\[multilib\]\n#Include = \/etc\/pacman.d\/mirrorlist|\[multilib\]\nInclude = \/etc\/pacman.d\/mirrorlist|' /etc/pacman.conf
     check-cpu
     [[ "$SETUP" == "full" ]] && check-gpu
-    if ! pacstrap "${PACSTRAP_OPTIONS[@]}" /mnt "${PKG[@]}"; then
-        log "Errors acquired during downloading. Trying again." err
-        pacstrap "${PACSTRAP_OPTIONS[@]}" /mnt "${PKG[@]}" || log "Problems with ethernet connection. Aborting." err 1
+    if [[ "$IS_INSTALLING_FROM_EXISTING_ARCH" == "yes" ]]; then
+        pacstrap -c /mnt "${PKG[@]}" || log "Problems with ethernet connection. Aborting." err 1
+    else
+        pacstrap /mnt "${PKG[@]}" || log "Problems with ethernet connection. Aborting." err 1
     fi
 
     log "Generating fstab"
@@ -605,3 +592,4 @@ case $STAGE in
         exit 1
         ;;
 esac
+

@@ -11,7 +11,7 @@ bootloader-grub ()
 
     pacstrap /mnt grub efibootmgr
 
-    if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
+    if $ENABLE_FULL_DRIVE_ENCRYPTION; then
         # https://wiki.archlinux.org/title/GRUB#LUKS2
         if [[ $(cryptsetup luksDump "$DRIVE$P2" | grep "PBKDF" | awk '{print $NF}') != "pbkdf2" ]]; then
             log "Changing the hash and PBDKDF algorithms"
@@ -90,7 +90,7 @@ bootloader-unified-kernel-image ()
 
     UUID=$(blkid -s UUID -o value "$DRIVE$P2")
     ROOT_PARAMS="root=UUID=$UUID"
-    [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]] && ROOT_PARAMS="cryptdevice=UUID=$UUID:root root=/dev/mapper/root"
+    [[ $ENABLE_FULL_DRIVE_ENCRYPTION ]] && ROOT_PARAMS="cryptdevice=UUID=$UUID:root root=/dev/mapper/root"
 
     log "Applying kernel parameters"
     echo "$ROOT_PARAMS rw bgrt_disable nowatchdog ${KERNEL_PARAMS[*]}" > /mnt/etc/kernel/cmdline

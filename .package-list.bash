@@ -6,7 +6,8 @@ PKG+=(base base-devel)
 
 ###########################################################-- Essential
 
-PKG+=(git gvim networkmanager iwd iproute2 iptables-nft apparmor wget opendoas lz4)
+PKG+=(git networkmanager iwd iproute2 iptables-nft apparmor wget opendoas lz4)
+PKG+=(gvim neovim fennel)
 
 ##---------------------------------------------------------------- Docs
 
@@ -25,6 +26,7 @@ PKG+=(exa bat procs dust ripgrep fd)
 ##-------------------------------------------------------------- Others
 
 PKG+=(gdb python rustup sccache rsync)
+PKG+=(task)         # A command-line todo list manager
 PKG+=(xplr)         # A hackable, minimal, fast TUI file explorer
 PKG+=(bubblewrap)   # Unprivileged sandboxing tool
 PKG+=(meson ninja)  # build system
@@ -39,12 +41,12 @@ PKG+=(ntfs-3g)      # NTFS filesystem driver and utilities
 
 if [[ "$SETUP" == "full" ]];
 then
-    PKG+=(neovim fennel)
     # PKG+=(emacs ccls)
     PKG+=(npm)
     PKG+=(cppcheck ctags)
     PKG+=(xdg-desktop-portal)
     PKG+=(bemenu)           # Dynamic menu library and client program inspired by dmenu
+    PKG+=(viewnior)         # image viewer
 
 #####################################################-- Display servers
 
@@ -56,7 +58,7 @@ then
     PKG+=(picom)            # compositor
     PKG+=(bemenu-x11)       # X11 renderer for bemenu
     PKG+=(flameshot)        # screenshoter
-    PKG+=(feh)              # image viewer & wallpaper setting
+    PKG+=(feh)              # for wallpaper setting
 fi
 
 if [[ "$DISPLAY_SERVER" == "Wayland" ]];
@@ -70,7 +72,6 @@ then
     PKG+=(swaybg)           # wallpaper setting
     PKG+=(bemenu-wayland)   # Wayland (wlroots-based compositors) renderer for bemenu
     PKG+=(grim slurp)       # screenshoter
-    PKG+=(imv)              # image viewer
     PKG+=(gtk-layer-shell)  # For EWW
     PKG+=(glfw-wayland)     # GLFW library
 fi
@@ -127,13 +128,12 @@ PKG+=(sysstat)          # a collection of performance monitoring tools (iostat,i
 PKG+=(pkgstats)         # Submit a list of installed packages to the Arch Linux project
 PKG+=(mate-polkit)      # graphical authentication agent
 PKG+=(dunst)            # Customizable and lightweight notification-daemon
-PKG+=(tlp)              # Linux Advanced Power Management
-PKG+=(gamemode lib32-gamemode) # A daemon/lib combo that allows games to request a set of optimisations be temporarily applied to the host OS
 PKG+=(asp)              # for paru
 PKG+=(zerotier-one)     # Creates virtual Ethernet networks of almost unlimited size
 PKG+=(yt-dlp)
 PKG+=(qrencode)
 PKG+=(bc)               # An arbitrary precision calculator language
+# PKG+=(tlp)              # Linux Advanced Power Management
 
 ################################################-- Themes, icons, fonts
 
@@ -148,17 +148,18 @@ PKG+=(ttf-liberation)       # Font family which aims at metric compatibility wit
 PKG+=(ttc-iosevka-ss14)     # JetBrains Mono Style
 PKG+=(ttc-iosevka-aile)     # Sans style
 PKG+=(ttc-iosevka-etoile)   # Serif style
+PKG+=(ttf-iosevka-nerd)
 PKG+=(unicode-emoji noto-fonts noto-fonts-cjk noto-fonts-emoji)
 
 ################################################################-- Apps
 
-PKG+=(telegram-desktop)
 PKG+=(libreoffice-fresh qbittorrent)
 PKG+=(keepassxc)                    # Cross-platform community-driven port of Keepass password manager
 PKG+=(inkscape)                     # Professional vector graphics editor
 PKG+=(zathura zathura-djvu zathura-pdf-mupdf)    # Minimalistic document viewer
 fi
 
-#wine
-#pacman -S wine-staging winetricks
-#pacman -S --asdeps --needed $(pacman -Si wine-staging | sed -n '/^Opt/,/^Conf/p' | sed '$d' | sed 's/^Opt.*://g' | sed 's/^\s*//g' | tr '\n' ' ')
+# Wine
+# pacman -S wine-staging winetricks
+# pacman -S --asdeps --needed $(pacman -Si wine-staging | sed -n '/^Opt/,/^Conf/p' | sed '$d' | sed 's/^Opt.*://g' | sed 's/^\s*//g' | tr '\n' ' ')
+# pacman -S gamemode lib32-gamemode)

@@ -6,7 +6,7 @@ USER="alex"
 HOST_NAME="arch"
 
 # What group of packages to install
-# Options: full | minimal
+# Options: minimal | full
 SETUP="minimal"
 
 # What Display server and corresponding desktop utils to install
@@ -27,46 +27,58 @@ TIMEZONE="Europe/Berlin"
 MIRRORLIST="Germany,Netherlands,Poland"
 
 # Will create a swap file in the root directory
-ENABLE_SWAP_FILE="no"
+ENABLE_SWAP_FILE=false
 SWAP_FILE_SIZE=16 # GiB
 
 # dm-crypt with LUKS
-ENABLE_FULL_DRIVE_ENCRYPTION="no"
-PASSPHRASE_FOR_ENCRYPTION=""
+ENABLE_FULL_DRIVE_ENCRYPTION=false
 
 # Will prefer package cache on the host
-IS_INSTALLING_FROM_EXISTING_ARCH="no"
+IS_INSTALLING_FROM_EXISTING_ARCH=false
 
 # At the end of installation it will be used for cloning the provided repo
 # and installing its content through GNU util "stow"
 # If empty this will be ignored
 GITCLONE="https://gitlab.com/justAlex0/dot-files"
+
+ESP="/boot/efi"
+STAGE="fresh"
 ############################################################################
 
 SCRIPT_PATH=$(realpath -s "${BASH_SOURCE[0]}")
 SCRIPT_NAME=$(basename "$SCRIPT_PATH")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 
-ESP="/boot/efi"
-STAGE="init"
-
 readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR ESP
-declare -a PACSTRAP_OPTIONS PKG AUR_PKG MODULES KERNEL_PARAMS
+declare -a PKG AUR_PKG MODULES KERNEL_PARAMS
 
-source "$SCRIPT_DIR"/.package-list.bash
-
-help ()
-{
+function help {
     printf "The script installs Arch Linux
 
 Usage:
     %s <drive> [OPTIONS]
 
 Options:
-    -s, --stage     Specify the stage of installing.
-                    init|boot
-                    default: init
+    -S, --stage=NAME        Specify the stage of installing.
+                            fresh|bootloader
+                            default: fresh
+    -u, --user=NAME         User name
+    -h, --hostname=NAME     Host name
+    -g, --setup=NAME        Group of packages
+                            minimal|full
+                            default: minimal
+    -d, --display=NAME      Display server that will be used if --setup=full
+                            X|Wayland
+                            default: X
+    -b, --bootloader=NAME   Bootloader to install
+                            UKI|Grub
+                            default: UKI
+    -s, --swap              Whether to use swap file
+    -e, --encryption        Whether to use full drive encryption
+    -a, --archhost          Whether installing from arch host to use its package cache
+
 " "$SCRIPT_NAME"
+   exit 0
 }
 
 BOLD=$(tput bold)
@@ -77,8 +89,7 @@ BLUE=$(tput setaf 4)
 ESC=$(tput sgr0)
 readonly BOLD RED GREEN YELLOW BLUE ESC
 
-log ()
-{
+function log {
     case "$2" in
         "err")
             printf "%s[%s]%s\n" "${BOLD}${RED}" "$1" "${ESC}" >&2
@@ -95,8 +106,7 @@ log ()
     fi
 }
 
-extend-drive-name ()
-{
+function ExtendDriveName {
     if lsblk --nodeps --noheadings --paths --raw --output NAME | grep -x "$DRIVE" &> /dev/null; then
         case $DRIVE in
             *"sd"* | *"vd"* )
@@ -112,25 +122,22 @@ extend-drive-name ()
             * )
                 log "Only HDD or SSD. Aborting." err
                 help
-                exit 1
                 ;;
         esac
         readonly P1 P2
     else
         log "Wrong \"$1\" drive. Aborting." err
         help
-        exit 1
     fi
 }
 
-summary ()
-{
-    if ! check-uefi; then
+function summary {
+    if ! check_uefi; then
         if [[ "$BOOTLOADER" != "grub" ]]; then
             log "UEFI is not supported." err
             log "Grub will be installed instead." warn
             BOOTLOADER="grub"
-            [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]] && log "BIOS + grub + full drive encryption is not supported in this script because I personally would never use this combination and so I didnt want to spend more time on it" err 1
+            [[ $ENABLE_FULL_DRIVE_ENCRYPTION ]] && log "BIOS + grub + full drive encryption is not supported in this script because I personally would never use this combination and so I didnt want to spend more time on it" err 1
         fi
     fi
     if [[ -z "$TIMEZONE" ]]; then
@@ -150,7 +157,7 @@ summary ()
     echo "            Enable swap file: [${YELLOW}${ENABLE_SWAP_FILE}${ESC}]"
     echo "              Swap file size: [${YELLOW}${SWAP_FILE_SIZE}${ESC}]"
     echo "Enable full drive encryption: [${YELLOW}${ENABLE_FULL_DRIVE_ENCRYPTION}${ESC}]"
-    echo "   Passphrase for encryption: [${YELLOW}${PASSPHRASE_FOR_ENCRYPTION}${ESC}]"
+    echo "Is installing from arch host: [${YELLOW}${IS_INSTALLING_FROM_EXISTING_ARCH}${ESC}]"
     echo "         Repository to clone: [${YELLOW}${GITCLONE}${ESC}]"
 
     local answer
@@ -172,7 +179,7 @@ summary ()
     echo
     USER_PASSWORD="$upass"
 
-    if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
+    if $ENABLE_FULL_DRIVE_ENCRYPTION; then
         local epass1 epass2
         read -srp "Enter encryption password" epass1
         echo
@@ -189,8 +196,7 @@ summary ()
 }
 
 source "$SCRIPT_DIR"/.bootloaders.bash
-deploy-bootloader ()
-{
+function deploy_bootloader {
     if [[ -n "$BOOTLOADER" ]]; then
         case "$BOOTLOADER" in
             "grub")
@@ -203,13 +209,11 @@ deploy-bootloader ()
     fi
 }
 
-check-uefi ()
-{
+function check_uefi {
     [ -d /sys/firmware/efi/ ]
 }
 
-check-cpu ()
-{
+function check_cpu {
     local CPU_VENDOR
     CPU_VENDOR=$(awk -F ": " '/vendor_id/ {print $NF; exit}' /proc/cpuinfo)
     case "$CPU_VENDOR" in
@@ -222,8 +226,7 @@ check-cpu ()
     esac
 }
 
-check-gpu ()
-{
+function check_gpu {
     local GRAPHICS
     GRAPHICS=$(lspci -v | grep -A1 -e VGA -e 3D)
     case ${GRAPHICS^^} in
@@ -247,14 +250,13 @@ check-gpu ()
     esac
 }
 
-partitioning ()
-{
+function partitioning {
     trap "readonly STATUS_PARTITIONING=error" ERR
     log "Partitioning the drive"
 
     log "Clearing existing partition tables"
     sgdisk "$DRIVE" -Z
-    if check-uefi; then
+    if check_uefi; then
         log "Partitioning 256M for EFI and the rest for Linux"
         sgdisk "$DRIVE" --align-end --new=1:0:+256M --typecode=1:ef00 --largest-new=2
     else
@@ -267,8 +269,7 @@ partitioning ()
     [[ "$STATUS_PARTITIONING" == "error" ]] && log "Errors acquired during Partitioning the drive." err 1
 }
 
-formatting ()
-{
+function formatting {
     trap "readonly STATUS_FORMATING=error" ERR
     log "Formatting the partitions (non-crypt)"
     yes | mkfs.fat -F 32 "$DRIVE$P1"
@@ -282,22 +283,16 @@ formatting ()
     [[ "$STATUS_FORMATING" == "error" ]] && log "Errors acquired during Formatting the partitions (non-crypt)." err 1
 }
 
-drive-preparation ()
-{
-    trap "readonly STATUS_WIPING=error" ERR
-
+function drive-preparation {
     log "Creating a temporary encrypted container on the drive"
     echo "YES" | cryptsetup open --type plain --key-file /dev/urandom "$DRIVE" to_be_wiped || exit 1
     log "Wiping it"
     dd if=/dev/zero of=/dev/mapper/to_be_wiped bs=1M status=progress
     log "Closing the container"
     cryptsetup close to_be_wiped
-
-    [[ "$STATUS_WIPING" == "error" ]] && log "Errors acquired during Wiping the drive." err 1
 }
 
-formatting-crypt ()
-{
+function formatting-crypt {
     trap "readonly STATUS_FORMATTING_CRYPT=error" ERR
     log "Formatting the partitions (crypt)"
 
@@ -322,16 +317,41 @@ formatting-crypt ()
     [[ "$STATUS_FORMATTING_CRYPT" == "error" ]] && log "Errors acquired during Formatting the partitions (crypt)." err 1
 }
 
-deploy-localtime ()
-{
+function deploy_swap {
+    trap "readonly STATUS_SWAP=error" ERR
+    if $ENABLE_SWAP_FILE; then
+        log "Creating a swap file"
+
+        dd if=/dev/zero of=/mnt/swapfile bs=1M count="$SWAP_FILE_SIZE"GiB status=progress
+        arch-chroot /mnt chmod 0600 /swapfile
+        arch-chroot /mnt mkswap -U clear /swapfile
+        # arch-chroot /mnt swapon /swapfile
+
+        {
+            echo -e "\n#Swapfile"
+            echo "/swapfile none swap defaults 0 0"
+        } >> /mnt/etc/fstab
+
+        sed -i "s|fsck|resume fsck|" /mnt/etc/mkinitcpio.conf
+
+        # See the reference
+        SWAP_DEVICE=$(findmnt -no UUID -T /mnt/swapfile)
+        SWAP_FILE_OFFSET=$(filefrag -v /mnt/swapfile | awk '$1=="0:" {print substr($4, 1, length($4)-2)}')
+        KERNEL_PARAMS+=(resume="$SWAP_DEVICE" resume_offset="$SWAP_FILE_OFFSET")
+    fi
+
+    log "Generating fstab"
+    genfstab -U /mnt > /mnt/etc/fstab
+}
+
+function deploy_localtime {
     trap "readonly STATUS_LOCALTIME=error" ERR
     log "Configuring localtime"
     [[ -n "$TIMEZONE" ]] && arch-chroot /mnt ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime
     arch-chroot /mnt hwclock --systohc
 }
 
-deploy-localization ()
-{
+function deploy_localization {
     trap "readonly STATUS_LOCALIZATION=error" ERR
     log "Configuring localization"
     sed -Ei "s|^#en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|" /mnt/etc/locale.gen
@@ -342,8 +362,7 @@ deploy-localization ()
     } > /mnt/etc/locale.conf
 }
 
-deploy-network ()
-{
+function deploy_network {
     trap "readonly STATUS_NETWORK=error" ERR
     log "Network configuration"
     echo "$HOST_NAME" > /mnt/etc/hostname
@@ -367,16 +386,14 @@ deploy-network ()
     fi
 }
 
-deploy-apparmor ()
-{
+function deploy_apparmor {
     if [[ -x /mnt/usr/bin/aa-status ]]; then
         KERNEL_PARAMS+=(lsm=landlock,lockdown,yama,integrity,apparmor,bpf)
         arch-chroot /mnt systemctl enable apparmor.service
     fi
 }
 
-deploy-users ()
-{
+function deploy_users {
     trap "readonly STATUS_USERS=error" ERR
     log "Setting root password"
     arch-chroot /mnt /bin/bash -c "echo root:$ROOT_PASSWORD | chpasswd" || log "Error - root password" err
@@ -406,33 +423,7 @@ deploy-users ()
     fi
 }
 
-deploy-swap ()
-{
-    trap "readonly STATUS_SWAP=error" ERR
-    if [[ "$ENABLE_SWAP_FILE" == "yes" ]]; then
-        log "Creating a swap file"
-
-        dd if=/dev/zero of=/mnt/swapfile bs=1M count="$SWAP_FILE_SIZE"GiB status=progress
-        arch-chroot /mnt chmod 0600 /swapfile
-        arch-chroot /mnt mkswap -U clear /swapfile
-        arch-chroot /mnt swapon /swapfile
-
-        {
-            echo -e "\n#Swapfile"
-            echo "/swapfile none swap defaults 0 0"
-        } >> /mnt/etc/fstab
-
-        sed -i "s|fsck|resume fsck|" /mnt/etc/mkinitcpio.conf
-
-        # See the reference
-        SWAP_DEVICE=$(findmnt -no UUID -T /mnt/swapfile)
-        SWAP_FILE_OFFSET=$(filefrag -v /mnt/swapfile | awk '$1=="0:" {print substr($4, 1, length($4)-2)}')
-        KERNEL_PARAMS+=(resume="$SWAP_DEVICE" resume_offset="$SWAP_FILE_OFFSET")
-    fi
-}
-
-deploy-initramfs ()
-{
+function deploy_initramfs {
     trap "readonly STATUS_INITRAMFS=error" ERR
     log "Generating initramfs images"
 
@@ -443,7 +434,7 @@ deploy-initramfs ()
     } > /mnt/etc/modprobe.d/nowatchdog.conf
     sed -Ei 's|^#?FILES=.*|FILES=(/etc/modprobe.d/nowatchdog.conf)|' /mnt/etc/mkinitcpio.conf
 
-    if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
+    if $ENABLE_FULL_DRIVE_ENCRYPTION; then
         sed -i "s|filesystems|encrypt filesystems|" /mnt/etc/mkinitcpio.conf
         MODULES+=(dm_crypt)
     fi
@@ -458,28 +449,27 @@ deploy-initramfs ()
     arch-chroot /mnt mkinitcpio -p linux
 }
 
-deploy-dotfiles ()
-{
+function deploy_dotfiles {
     trap "readonly STATUS_DOTFILES=error" ERR
     if [[ -n "$GITCLONE" && -n "$USER" ]]; then
         log "Cloning dot-files"
-        cd /mnt/home/"$USER" && git clone "$GITCLONE"
+        cd /mnt/home/"$USER" || return
+        git clone "$GITCLONE"
+        arch-chroot /mnt chown "$USER":"$USER" -R "/home/$USER"
     fi
 }
 
-deploy-unmount ()
-{
+function deploy_unmount {
     log "Unmounting /mnt"
-    [[ "$ENABLE_SWAP_FILE" == "yes" ]] && swapoff /mnt/swapfile
+    # [[ $ENABLE_SWAP_FILE ]] && swapoff /mnt/swapfile
     umount -R /mnt || log "Error - Failed to umount /mnt" err
-    if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
+    if $ENABLE_FULL_DRIVE_ENCRYPTION; then
         log "Closing the encrypted partition"
         cryptsetup close root || log "Error - Failed to close the encrypted partition" err
     fi
 }
 
-check-errors ()
-{
+function check_errors {
     [[ "$STATUS_LOCALTIME" == "error" ]] && log "Errors acquired during Localtime configuration." err
     [[ "$STATUS_LOCALIZATION" == "error" ]] && log "Errors acquired during Localization configuration." err
     [[ "$STATUS_NETWORK" == "error" ]] && log "Errors acquired during Network configuration." err
@@ -490,8 +480,7 @@ check-errors ()
     [[ "$STATUS_BOOTLOADER" == "error" ]] && log "Errors acquired during Installation of the bootloader." err
 }
 
-deploy-init ()
-{
+function deploy_init {
     summary
 
     log "Testing ethernet connection"
@@ -500,7 +489,7 @@ deploy-init ()
     log "Updating the system clock"
     timedatectl set-ntp true
 
-    if [[ "$ENABLE_FULL_DRIVE_ENCRYPTION" == "yes" ]]; then
+    if $ENABLE_FULL_DRIVE_ENCRYPTION; then
         drive-preparation
         partitioning
         formatting-crypt
@@ -509,39 +498,50 @@ deploy-init ()
         formatting
     fi
 
-    log "Installing essential packages"
     sed -Ei 's|^#?Color|Color|' /etc/pacman.conf
     sed -Ei "s|^#?ParallelDownloads.*|ParallelDownloads = 3|" /etc/pacman.conf
     sed -zi 's|#\[multilib\]\n#Include = \/etc\/pacman.d\/mirrorlist|\[multilib\]\nInclude = \/etc\/pacman.d\/mirrorlist|' /etc/pacman.conf
-    check-cpu
-    [[ "$SETUP" == "full" ]] && check-gpu
-    if [[ "$IS_INSTALLING_FROM_EXISTING_ARCH" == "yes" ]]; then
+
+    source "$SCRIPT_DIR"/.package-list.bash
+    check_cpu
+    [[ "$SETUP" == "full" ]] && check_gpu
+    if $IS_INSTALLING_FROM_EXISTING_ARCH; then
         pacstrap -c /mnt "${PKG[@]}" || log "Problems with ethernet connection. Aborting." err 1
     else
         pacstrap /mnt "${PKG[@]}" || log "Problems with ethernet connection. Aborting." err 1
     fi
 
-    log "Generating fstab"
-    genfstab -U /mnt > /mnt/etc/fstab
+    sed -Ei 's|^#?UseSyslog|UseSyslog|' /mnt/etc/pacman.conf
+    sed -Ei 's|^#?Color|Color|' /mnt/etc/pacman.conf
+    sed -Ei 's|^#?VerbosePkgLists|VerbosePkgLists|' /mnt/etc/pacman.conf
+    sed -Ei 's|^#?ParallelDownloads.*|ParallelDownloads = 3|' /mnt/etc/pacman.conf
+    sed -zi 's|#\[multilib\]\n#Include = \/etc\/pacman.d\/mirrorlist|\[multilib\]\nInclude = \/etc\/pacman.d\/mirrorlist|' /mnt/etc/pacman.conf
 
-    deploy-localtime
-    deploy-localization
-    deploy-network
-    deploy-apparmor
-    deploy-users
-    deploy-swap
-    deploy-initramfs
-    deploy-bootloader
-    deploy-dotfiles
-    deploy-unmount
+    if [[ -x /mnt/usr/bin/zsh ]]; then
+        log "Making zsh the default shell"
+        arch-chroot chsh -s /usr/bin/zsh
+        arch-chroot chsh "$USER" -s /usr/bin/zsh
+        echo 'ZDOTDIR="$HOME"/.config/zsh' >> /mnt/etc/zsh/zshenv
+    fi
 
-    check-errors
+    deploy_swap
+    deploy_localtime
+    deploy_localization
+    deploy_network
+    deploy_apparmor
+    deploy_users
+    deploy_initramfs
+    deploy_bootloader
+    deploy_dotfiles
+    deploy_unmount
 
-    log "Looks like everything is done."
+    check_errors
+
+    log "Looks like everything is done." warn
 }
 
-LONG_OPTS=stage:,help
-SHORT_OPTS=s:h
+LONG_OPTS=help,stage:,user:,hostname:,setup:,display:,bootloader:,swap,encryption,archhost
+SHORT_OPTS=S:u:h:g:d:b:sea
 PARSED=$(getopt --options ${SHORT_OPTS} \
     --longoptions ${LONG_OPTS} \
     --name "$0" \
@@ -550,13 +550,44 @@ eval set -- "${PARSED}"
 
 while true; do
     case "$1" in
-        -s|--stage)
+        --help)
+            help
+            ;;
+        -S|--stage)
             STAGE="$2"
             shift 2
             ;;
-        -h|--help)
-            help
-            exit 0
+        -u|--user)
+            USER="$2"
+            shift 2
+            ;;
+        -h|--hostname)
+            HOST_NAME="$2"
+            shift 2
+            ;;
+        -g|--setup)
+            SETUP="$2"
+            shift 2
+            ;;
+        -d|--display)
+            DISPLAY_SERVER="$2"
+            shift 2
+            ;;
+        -b|--bootloader)
+            BOOTLOADER="$2"
+            shift 2
+            ;;
+        -s|--swap)
+            ENABLE_SWAP_FILE=true
+            shift
+            ;;
+        -e|--encryption)
+            ENABLE_FULL_DRIVE_ENCRYPTION=true
+            shift
+            ;;
+        -a|--archhost)
+            IS_INSTALLING_FROM_EXISTING_ARCH=true
+            shift
             ;;
         --)
             shift
@@ -565,7 +596,6 @@ while true; do
         *)
             echo "Error while was passing the options"
             help
-            exit 1
             ;;
     esac
 done
@@ -573,23 +603,21 @@ done
 if [[ $# -ne 1 ]]; then
     log "A single input file is required" err
     help
-    exit 1
 else
     readonly DRIVE="$1"
-    extend-drive-name "$DRIVE"
+    ExtendDriveName "$DRIVE"
 fi
 
 case $STAGE in
-    "init") deploy-init;;
-    "boot")
-        deploy-bootloader
-        deploy-unmount
-        check-errors
+    "fresh") deploy_init ;;
+    "bootloader")
+        deploy_bootloader
+        deploy_unmount
+        check_errors
         ;;
     *)
         log "Wrong options." err
         help
-        exit 1
         ;;
 esac
 

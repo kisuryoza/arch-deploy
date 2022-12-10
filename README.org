@@ -246,7 +246,7 @@ function summary {
 }
 #+end_src
 
-** Choose Bootloader
+** Bootloader
 #+begin_src bash
 source "$SCRIPT_DIR"/.bootloaders.bash
 function deploy_bootloader {
@@ -752,6 +752,7 @@ case $STAGE in
 esac
 #+end_src
 
-* TODO [0/2]
+* TODO [0/3]
 + [ ] Auto-mounting on choosing the boot stage
 + [ ] Auto-figure swap size
++ [ ] Add 'clone' functionality in case of rather chosing to clone the entire system of host to another drive

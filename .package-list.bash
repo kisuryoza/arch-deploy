@@ -46,7 +46,6 @@ then
     PKG+=(cppcheck ctags)
     PKG+=(xdg-desktop-portal)
     PKG+=(bemenu)           # Dynamic menu library and client program inspired by dmenu
-    PKG+=(viewnior)         # image viewer
 
 #####################################################-- Display servers
 
@@ -105,6 +104,7 @@ PKG+=(syncthing)    # file synchronization client/server application
 PKG+=(thunar)
 PKG+=(thunar-volman thunar-archive-plugin thunar-media-tags-plugin ffmpegthumbnailer tumbler)
 PKG+=(udiskie)      # Removable disk automounter using udisks
+PKG+=(fuseiso)      # FuseISO is a FUSE module to let unprivileged users mount ISO filesystem images
 PKG+=(gvfs-mtp)     # Virtual filesystem implementation
 PKG+=(file-roller)  # Create and modify archives
 PKG+=(p7zip)        # 7z support

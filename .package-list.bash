@@ -7,7 +7,7 @@ PKG+=(base base-devel)
 ###########################################################-- Essential
 
 PKG+=(git networkmanager iwd iproute2 iptables-nft apparmor wget opendoas lz4)
-PKG+=(gvim neovim fennel)
+PKG+=(gvim neovim fennel bash-language-server)
 
 ##---------------------------------------------------------------- Docs
 
@@ -37,6 +37,7 @@ PKG+=(htop)         # interactive process viewer
 PKG+=(bottom)       # A customizable cross-platform graphical process/system monitor for the terminal.
 PKG+=(sysstat)      # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
 PKG+=(ntfs-3g)      # NTFS filesystem driver and utilities
+PKG+=(libqalculate) # Multi-purpose desktop calculator
 
 
 if [[ "$SETUP" == "full" ]];

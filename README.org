@@ -473,15 +473,6 @@ function deploy_network {
         echo "127.0.1.1        $HOST_NAME"
     } > /mnt/etc/hosts
     arch-chroot /mnt systemctl enable NetworkManager.service
-    {
-        echo "[device]"
-        echo "wifi.scan-rand-mac-address=no"
-    } > /mnt/etc/NetworkManager/NetworkManager.conf
-    mkdir -p /mnt/etc/iwd
-    {
-        echo "[General]"
-        echo "EnableNetworkConfiguration=True"
-    } > /mnt/etc/iwd/main.conf
     if [[ -x /mnt/usr/bin/nft ]]; then
         arch-chroot /mnt systemctl enable nftables.service
     fi

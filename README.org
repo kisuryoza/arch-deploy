@@ -1,5 +1,5 @@
 *** Disclaimer
-It's not really suited to be used for public, since there's a nicer tool called ~archinstall~. I made this script as a tool that suits my needs and deploys the OS with my setup and configs.
+It's not really suited to be used for public, since there's a nicer tool called ~archinstall~. I made this script as a tool that suits my needs and deploys the OS with my setup and configs. Also it's a part of learning howto's.
 Though I hope somebody find in here something helpfull.
 
 * So

@@ -7,7 +7,7 @@ PKG+=(base base-devel)
 ###########################################################-- Essential
 
 PKG+=(git networkmanager iwd iproute2 iptables-nft apparmor wget opendoas lz4)
-PKG+=(gvim neovim fennel bash-language-server)
+PKG+=(gvim neovim fennel fnlfmt shfmt bash-language-server)
 
 ##---------------------------------------------------------------- Docs
 
@@ -154,7 +154,7 @@ PKG+=(unicode-emoji noto-fonts noto-fonts-cjk noto-fonts-emoji)
 
 ################################################################-- Apps
 
-PKG+=(libreoffice-fresh qbittorrent)
+PKG+=(libreoffice-fresh transmission-gtk)
 PKG+=(keepassxc)                    # Cross-platform community-driven port of Keepass password manager
 PKG+=(inkscape)                     # Professional vector graphics editor
 PKG+=(zathura zathura-djvu zathura-pdf-mupdf)    # Minimalistic document viewer

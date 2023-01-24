@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-##################################################### User-defined variables
+# These variables one may change if not going to use options
+# {{{ User-defined variables
 # If empty the user will not be created
 USER="alex"
 
@@ -39,284 +40,29 @@ IS_INSTALLING_FROM_EXISTING_ARCH=false
 # At the end of installation it will be used for cloning the provided repo
 # and installing its content through GNU util "stow"
 # If empty this will be ignored
-GITCLONE="https://gitlab.com/justAlex0/dot-files"
+GITCLONE="https://github.com/justAlex0/dot-files"
 
 ESP="/boot/efi"
 STAGE="fresh"
-############################################################################
+# }}}
 
+# These are global variables
+# {{{ Script-defined variables
 SCRIPT_PATH=$(realpath -s "${BASH_SOURCE[0]}")
 SCRIPT_NAME=$(basename "$SCRIPT_PATH")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 
 readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR ESP
 declare -a PKG AUR_PKG MODULES KERNEL_PARAMS
+# }}}
 
-function help {
-    printf "The script installs Arch Linux
+cd "$SCRIPT_DIR" || exit 1
+source ./lib/helper-fn.bash
+source ./lib/bootloaders.bash
+source ./lib/partitioning.bash
 
-Usage:
-    %s <drive> [OPTIONS]
-
-Options:
-    -S, --stage=NAME        Specify the stage of installing.
-                            fresh|bootloader
-                            default: fresh
-    -u, --user=NAME         User name
-    -h, --hostname=NAME     Host name
-    -g, --setup=NAME        Group of packages
-                            minimal|full
-                            default: minimal
-    -d, --display=NAME      Display server that will be used if --setup=full
-                            X|Wayland
-                            default: X
-    -b, --bootloader=NAME   Bootloader to install
-                            UKI|Grub
-                            default: UKI
-    -s, --swap              Whether to use swap file
-    -e, --encryption        Whether to use full drive encryption
-    -a, --archhost          Whether installing from arch host to use its package cache
-
-" "$SCRIPT_NAME"
-   exit 0
-}
-
-BOLD=$(tput bold)
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-YELLOW=$(tput setaf 3)
-BLUE=$(tput setaf 4)
-ESC=$(tput sgr0)
-readonly BOLD RED GREEN YELLOW BLUE ESC
-
-function log {
-    case "$2" in
-        "err")
-            printf "%s[%s]%s\n" "${BOLD}${RED}" "$1" "${ESC}" >&2
-            ;;
-        "warn")
-            printf "%s[%s]%s\n" "${BOLD}${YELLOW}" "$1" "${ESC}"
-            ;;
-        *)
-            printf "%s[%s]%s\n" "${BOLD}${GREEN}" "$1" "${ESC}"
-            ;;
-    esac
-    if [[ -n "$3" ]]; then
-        exit "$3"
-    fi
-}
-
-function ExtendDriveName {
-    if lsblk --nodeps --noheadings --paths --raw --output NAME | grep -x "$DRIVE" &> /dev/null; then
-        case $DRIVE in
-            *"sd"* | *"vd"* )
-                P1="1"
-                P2="2"
-                #P3="3"
-                ;;
-            *"nvme"* )
-                P1="p1"
-                P2="p2"
-                #P3="p3"
-                ;;
-            * )
-                log "Only HDD or SSD. Aborting." err
-                help
-                ;;
-        esac
-        readonly P1 P2
-    else
-        log "Wrong \"$1\" drive. Aborting." err
-        help
-    fi
-}
-
-function summary {
-    if ! check_uefi; then
-        if [[ "$BOOTLOADER" != "grub" ]]; then
-            log "UEFI is not supported." err
-            log "Grub will be installed instead." warn
-            BOOTLOADER="grub"
-            [[ $ENABLE_FULL_DRIVE_ENCRYPTION ]] && log "BIOS + grub + full drive encryption is not supported in this script because I personally would never use this combination and so I didnt want to spend more time on it" err 1
-        fi
-    fi
-    if [[ -z "$TIMEZONE" ]]; then
-        log "Timezone is not provided. \"UTC\" will be used." err
-        TIMEZONE="UTC"
-    fi
-
-    echo "Summary:"
-    echo "                       Drive: [${BOLD}${YELLOW}${DRIVE}${ESC}]"
-    echo "                        User: [${YELLOW}${USER}${ESC}]"
-    echo "                   Host name: [${YELLOW}${HOST_NAME}${ESC}]"
-    echo "                       Setup: [${YELLOW}${SETUP}${ESC}]"
-    echo "              Display Server: [${YELLOW}${DISPLAY_SERVER}${ESC}]"
-    echo "                  Bootloader: [${YELLOW}${BOOTLOADER}${ESC}]"
-    echo "                    Timezone: [${YELLOW}${TIMEZONE}${ESC}]"
-    echo "                  Mirrorlist: [${YELLOW}${MIRRORLIST}${ESC}]"
-    echo "            Enable swap file: [${YELLOW}${ENABLE_SWAP_FILE}${ESC}]"
-    echo "              Swap file size: [${YELLOW}${SWAP_FILE_SIZE}${ESC}]"
-    echo "Enable full drive encryption: [${YELLOW}${ENABLE_FULL_DRIVE_ENCRYPTION}${ESC}]"
-    echo "Is installing from arch host: [${YELLOW}${IS_INSTALLING_FROM_EXISTING_ARCH}${ESC}]"
-    echo "         Repository to clone: [${YELLOW}${GITCLONE}${ESC}]"
-
-    local answer
-    read -rp "Continue? y/n " answer
-    echo
-    [[ "$answer" != "y" ]] && exit 1
-
-    local rpass1 rpass2
-    read -srp "Enter root password" rpass1
-    echo
-    [[ -z "$rpass1" ]] && log "no password" err 1
-    read -srp "Enter root password again" rpass2
-    echo
-    [[ "$rpass1" != "$rpass2" ]] && log "wrong passwords" err 1
-    ROOT_PASSWORD="$rpass1"
-
-    local upass
-    read -srp "Enter user password (might be empty)" upass
-    echo
-    USER_PASSWORD="$upass"
-
-    if $ENABLE_FULL_DRIVE_ENCRYPTION; then
-        local epass1 epass2
-        read -srp "Enter encryption password" epass1
-        echo
-        [[ -z "$epass1" ]] && log "no password" err 1
-        read -srp "Enter encryption password again" epass2
-        echo
-        [[ "$epass1" != "$epass2" ]] && log "wrong passwords" err 1
-        PASSPHRASE_FOR_ENCRYPTION="$epass1"
-    fi
-
-    readonly DRIVE USER HOST_NAME ROOT_PASSWORD USER_PASSWORD SETUP BOOTLOADER TIMEZONE MIRRORLIST
-    readonly ENABLE_SWAP_FILE SWAP_FILE_SIZE ENABLE_FULL_DRIVE_ENCRYPTION PASSPHRASE_FOR_ENCRYPTION
-    readonly GITCLONE
-}
-
-source "$SCRIPT_DIR"/.bootloaders.bash
-function deploy_bootloader {
-    if [[ -n "$BOOTLOADER" ]]; then
-        case "$BOOTLOADER" in
-            "grub")
-                bootloader-grub
-                ;;
-            "UKI")
-                bootloader-unified-kernel-image
-                ;;
-        esac
-    fi
-}
-
-function check_uefi {
-    [ -d /sys/firmware/efi/ ]
-}
-
-function check_cpu {
-    local CPU_VENDOR
-    CPU_VENDOR=$(awk -F ": " '/vendor_id/ {print $NF; exit}' /proc/cpuinfo)
-    case "$CPU_VENDOR" in
-        "GenuineIntel" )
-            PKG+=(intel-ucode xf86-video-intel)
-            ;;
-        "AuthenticAMD" )
-            PKG+=(amd-ucode xf86-video-amdgpu)
-            ;;
-    esac
-}
-
-function check_gpu {
-    local GRAPHICS
-    GRAPHICS=$(lspci -v | grep -A1 -e VGA -e 3D)
-    case ${GRAPHICS^^} in
-        *NVIDIA* )
-            PKG+=(linux-headers)
-            [[ "$SETUP" == "full" ]] && PKG+=(linux-zen-headers)
-            PKG+=(nvidia-dkms nvidia-utils nvidia-settings)
-            PKG+=(vulkan-icd-loader)
-            PKG+=(nvtop)
-            MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
-            ;;
-        *AMD* | *ATI* )
-            PKG+=(xf86-video-ati libva-mesa-driver vulkan-radeon)
-            PKG+=(vulkan-icd-loader)
-            PKG+=(nvtop)
-            ;;
-        *INTEL* )
-            PKG+=(libva-intel-driver intel-media-driver vulkan-intel)
-            PKG+=(vulkan-icd-loader)
-            ;;
-    esac
-}
-
-function partitioning {
-    trap "readonly STATUS_PARTITIONING=error" ERR
-    log "Partitioning the drive"
-
-    log "Clearing existing partition tables"
-    sgdisk "$DRIVE" -Z
-    if check_uefi; then
-        log "Partitioning 256M for EFI and the rest for Linux"
-        sgdisk "$DRIVE" --align-end --new=1:0:+256M --typecode=1:ef00 --largest-new=2
-    else
-        log "Partitioning 256M for BIOS and the rest for Linux"
-        sgdisk "$DRIVE" --align-end --new=1:0:+256M --typecode=1:ef02 --largest-new=2
-    fi
-    log "Partition table:"
-    sgdisk "$DRIVE" -p
-
-    [[ "$STATUS_PARTITIONING" == "error" ]] && log "Errors acquired during Partitioning the drive." err 1
-}
-
-function formatting {
-    trap "readonly STATUS_FORMATING=error" ERR
-    log "Formatting the partitions (non-crypt)"
-    yes | mkfs.fat -F 32 "$DRIVE$P1"
-    yes | mkfs.ext4 "$DRIVE$P2"
-
-    log "Mounting the partitions"
-    mount "$DRIVE$P2" /mnt
-    mkdir -p /mnt"$ESP"
-    mount "$DRIVE$P1" /mnt"$ESP"
-
-    [[ "$STATUS_FORMATING" == "error" ]] && log "Errors acquired during Formatting the partitions (non-crypt)." err 1
-}
-
-function drive-preparation {
-    log "Creating a temporary encrypted container on the drive"
-    echo "YES" | cryptsetup open --type plain --key-file /dev/urandom "$DRIVE" to_be_wiped || exit 1
-    log "Wiping it"
-    dd if=/dev/zero of=/dev/mapper/to_be_wiped bs=1M status=progress
-    log "Closing the container"
-    cryptsetup close to_be_wiped
-}
-
-function formatting-crypt {
-    trap "readonly STATUS_FORMATTING_CRYPT=error" ERR
-    log "Formatting the partitions (crypt)"
-
-    yes | mkfs.fat -F 32 "$DRIVE$P1"
-
-    log "Formatting LUKS partitions"
-    echo "$PASSPHRASE_FOR_ENCRYPTION" | cryptsetup --verbose luksFormat "$DRIVE$P2"
-    log "Unlocking/Mapping LUKS partitions with the device mapper"
-    if [[ "$DRIVE" == *"nvme"*  ]]; then
-        # See the reference
-        echo "$PASSPHRASE_FOR_ENCRYPTION" | cryptsetup --perf-no_read_workqueue --perf-no_write_workqueue --persistent open "$DRIVE$P2" root
-    else
-        echo "$PASSPHRASE_FOR_ENCRYPTION" | cryptsetup open "$DRIVE$P2" root
-    fi
-    yes | mkfs.ext4 /dev/mapper/root
-
-    log "Mounting the partitions"
-    mount /dev/mapper/root /mnt
-    mkdir -p /mnt"$ESP"
-    mount "$DRIVE$P1" /mnt"$ESP"
-
-    [[ "$STATUS_FORMATTING_CRYPT" == "error" ]] && log "Errors acquired during Formatting the partitions (crypt)." err 1
-}
-
+# References:
+# https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate
 function deploy_swap {
     trap "readonly STATUS_SWAP=error" ERR
     if $ENABLE_SWAP_FILE; then
@@ -330,7 +76,7 @@ function deploy_swap {
         {
             echo -e "\n#Swapfile"
             echo "/swapfile none swap defaults 0 0"
-        } >> /mnt/etc/fstab
+        } >>/mnt/etc/fstab
 
         sed -i "s|fsck|resume fsck|" /mnt/etc/mkinitcpio.conf
 
@@ -341,7 +87,7 @@ function deploy_swap {
     fi
 
     log "Generating fstab"
-    genfstab -U /mnt > /mnt/etc/fstab
+    genfstab -U /mnt >/mnt/etc/fstab
 }
 
 function deploy_localtime {
@@ -359,18 +105,21 @@ function deploy_localization {
     {
         echo "LANG=en_US.UTF-8"
         echo "LC_ALL=en_US.UTF-8"
-    } > /mnt/etc/locale.conf
+    } >/mnt/etc/locale.conf
 }
 
+# References:
+# https://bbs.archlinux.org/viewtopic.php?id=250604
+# https://wiki.archlinux.org/title/Iwd#No_DHCP_in_AP_mode
 function deploy_network {
     trap "readonly STATUS_NETWORK=error" ERR
     log "Network configuration"
-    echo "$HOST_NAME" > /mnt/etc/hostname
+    echo "$HOST_NAME" >/mnt/etc/hostname
     {
         echo "127.0.0.1        localhost"
         echo "::1              localhost"
         echo "127.0.1.1        $HOST_NAME"
-    } > /mnt/etc/hosts
+    } >/mnt/etc/hosts
     arch-chroot /mnt systemctl enable NetworkManager.service
     if [[ -x /mnt/usr/bin/nft ]]; then
         arch-chroot /mnt systemctl enable nftables.service
@@ -406,7 +155,7 @@ function deploy_users {
         {
             echo "permit nopass root"
             echo -e "permit :wheel\n"
-        } > /mnt/etc/doas.conf
+        } >/mnt/etc/doas.conf
         arch-chroot /mnt chmod -c 0400 /etc/doas.conf
         arch-chroot /mnt ln -sf /usr/bin/doas /usr/bin/sudo
     else
@@ -414,6 +163,8 @@ function deploy_users {
     fi
 }
 
+# References:
+# https://wiki.archlinux.org/title/improving_performance#Watchdogs
 function deploy_initramfs {
     trap "readonly STATUS_INITRAMFS=error" ERR
     log "Generating initramfs images"
@@ -422,7 +173,7 @@ function deploy_initramfs {
     {
         echo "# Do not load watchdogs module for increasing perfomance"
         echo "blacklist iTCO_wdt"
-    } > /mnt/etc/modprobe.d/nowatchdog.conf
+    } >/mnt/etc/modprobe.d/nowatchdog.conf
     sed -Ei 's|^#?FILES=.*|FILES=(/etc/modprobe.d/nowatchdog.conf)|' /mnt/etc/mkinitcpio.conf
 
     if $ENABLE_FULL_DRIVE_ENCRYPTION; then
@@ -475,7 +226,7 @@ function deploy_init {
     summary
 
     log "Testing ethernet connection"
-    ping archlinux.org -c 2 &> /dev/null || log "No ethernet connection. Aborting." err 1
+    ping archlinux.org -c 2 &>/dev/null || log "No ethernet connection. Aborting." err 1
 
     log "Updating the system clock"
     timedatectl set-ntp true
@@ -493,7 +244,7 @@ function deploy_init {
     sed -Ei "s|^#?ParallelDownloads.*|ParallelDownloads = 3|" /etc/pacman.conf
     sed -zi 's|#\[multilib\]\n#Include = \/etc\/pacman.d\/mirrorlist|\[multilib\]\nInclude = \/etc\/pacman.d\/mirrorlist|' /etc/pacman.conf
 
-    source "$SCRIPT_DIR"/.package-list.bash
+    source ./lib/package-list.bash
     check_cpu
     [[ "$SETUP" == "full" ]] && check_gpu
     if $IS_INSTALLING_FROM_EXISTING_ARCH; then
@@ -512,7 +263,7 @@ function deploy_init {
         log "Making zsh the default shell"
         arch-chroot chsh -s /usr/bin/zsh
         arch-chroot chsh "$USER" -s /usr/bin/zsh
-        echo 'ZDOTDIR="$HOME"/.config/zsh' >> /mnt/etc/zsh/zshenv
+        echo 'ZDOTDIR="$HOME"/.config/zsh' >>/mnt/etc/zsh/zshenv
     fi
 
     deploy_swap
@@ -531,6 +282,7 @@ function deploy_init {
     log "Looks like everything is done." warn
 }
 
+# {{{ Option parser
 LONG_OPTS=help,stage:,user:,hostname:,setup:,display:,bootloader:,swap,encryption,archhost
 SHORT_OPTS=S:u:h:g:d:b:sea
 PARSED=$(getopt --options ${SHORT_OPTS} \
@@ -541,55 +293,56 @@ eval set -- "${PARSED}"
 
 while true; do
     case "$1" in
-        --help)
-            help
-            ;;
-        -S|--stage)
-            STAGE="$2"
-            shift 2
-            ;;
-        -u|--user)
-            USER="$2"
-            shift 2
-            ;;
-        -h|--hostname)
-            HOST_NAME="$2"
-            shift 2
-            ;;
-        -g|--setup)
-            SETUP="$2"
-            shift 2
-            ;;
-        -d|--display)
-            DISPLAY_SERVER="$2"
-            shift 2
-            ;;
-        -b|--bootloader)
-            BOOTLOADER="$2"
-            shift 2
-            ;;
-        -s|--swap)
-            ENABLE_SWAP_FILE=true
-            shift
-            ;;
-        -e|--encryption)
-            ENABLE_FULL_DRIVE_ENCRYPTION=true
-            shift
-            ;;
-        -a|--archhost)
-            IS_INSTALLING_FROM_EXISTING_ARCH=true
-            shift
-            ;;
-        --)
-            shift
-            break
-            ;;
-        *)
-            echo "Error while was passing the options"
-            help
-            ;;
+    --help)
+        help
+        ;;
+    -S | --stage)
+        STAGE="$2"
+        shift 2
+        ;;
+    -u | --user)
+        USER="$2"
+        shift 2
+        ;;
+    -h | --hostname)
+        HOST_NAME="$2"
+        shift 2
+        ;;
+    -g | --setup)
+        SETUP="$2"
+        shift 2
+        ;;
+    -d | --display)
+        DISPLAY_SERVER="$2"
+        shift 2
+        ;;
+    -b | --bootloader)
+        BOOTLOADER="$2"
+        shift 2
+        ;;
+    -s | --swap)
+        ENABLE_SWAP_FILE=true
+        shift
+        ;;
+    -e | --encryption)
+        ENABLE_FULL_DRIVE_ENCRYPTION=true
+        shift
+        ;;
+    -a | --archhost)
+        IS_INSTALLING_FROM_EXISTING_ARCH=true
+        shift
+        ;;
+    --)
+        shift
+        break
+        ;;
+    *)
+        echo "Error while was passing the options"
+        help
+        ;;
     esac
 done
+# }}}
 
 if [[ $# -ne 1 ]]; then
     log "A single input file is required" err
@@ -599,16 +352,16 @@ else
     ExtendDriveName "$DRIVE"
 fi
 
+# This is where installation begins
 case $STAGE in
-    "fresh") deploy_init ;;
-    "bootloader")
-        deploy_bootloader
-        deploy_unmount
-        check_errors
-        ;;
-    *)
-        log "Wrong options." err
-        help
-        ;;
+"fresh") deploy_init ;;
+"bootloader")
+    deploy_bootloader
+    deploy_unmount
+    check_errors
+    ;;
+*)
+    log "Wrong options." err
+    help
+    ;;
 esac
-

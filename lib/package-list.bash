@@ -7,34 +7,30 @@ PKG+=(base base-devel)
 ###########################################################-- Essential
 
 PKG+=(git networkmanager iwd iproute2 iptables-nft apparmor wget opendoas lz4)
-PKG+=(gvim neovim fennel fnlfmt shfmt bash-language-server)
+PKG+=(gvim fennel fnlfmt shfmt bash-language-server)
+PKG+=(bash-completion zsh starship)
 
 ##---------------------------------------------------------------- Docs
 
 PKG+=(man-db man-pages texinfo)
 
-##--------------------------------------------------------------- Shell
-
-PKG+=(bash-completion)
-PKG+=(zsh zsh-syntax-highlighting zsh-autosuggestions)
-PKG+=(starship)
-
 ##-------------------------------------------- Rust alternatives to gnu
 
-PKG+=(exa bat procs dust ripgrep fd)
+PKG+=(exa bat procs dust ripgrep fd sd hyperfine)
 
 ##-------------------------------------------------------------- Others
 
 PKG+=(gdb python rustup sccache rsync)
+PKG+=(docker)
+PKG+=(gitui)        # terminal ui for git
 PKG+=(task)         # A command-line todo list manager
 PKG+=(xplr)         # A hackable, minimal, fast TUI file explorer
 PKG+=(bubblewrap)   # Unprivileged sandboxing tool
-PKG+=(meson ninja)  # build system
+PKG+=(meson ninja)  # build systems
 PKG+=(dos2unix)     # Text file format converter
 PKG+=(stow)         # Manage installation of multiple softwares in the same directory tree
 PKG+=(neofetch)     # system information tool
-PKG+=(htop)         # interactive process viewer
-PKG+=(bottom)       # A customizable cross-platform graphical process/system monitor for the terminal.
+PKG+=(btop)         # A monitor of system resources, bpytop ported to C++
 PKG+=(sysstat)      # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
 PKG+=(ntfs-3g)      # NTFS filesystem driver and utilities
 PKG+=(libqalculate) # Multi-purpose desktop calculator
@@ -42,7 +38,6 @@ PKG+=(libqalculate) # Multi-purpose desktop calculator
 
 if [[ "$SETUP" == "full" ]];
 then
-    # PKG+=(emacs ccls)
     PKG+=(npm)
     PKG+=(cppcheck ctags)
     PKG+=(xdg-desktop-portal)
@@ -145,6 +140,7 @@ PKG+=(python-pywal breeze-icons)
 # Fonts
 PKG+=(ttf-dejavu)
 PKG+=(ttf-jetbrains-mono)
+PKG+=(ttf-jetbrains-mono-nerd)
 PKG+=(ttf-liberation)       # Font family which aims at metric compatibility with Arial, Times New Roman, and Courier New
 PKG+=(ttc-iosevka-ss14)     # JetBrains Mono Style
 PKG+=(ttc-iosevka-aile)     # Sans style

@@ -266,6 +266,8 @@ function deploy_init {
         echo 'ZDOTDIR="$HOME"/.config/zsh' >>/mnt/etc/zsh/zshenv
     fi
 
+    arch-chroot /mnt systemctl enable archlinux-keyring-wkd-sync.timer
+
     deploy_swap
     deploy_localtime
     deploy_localization

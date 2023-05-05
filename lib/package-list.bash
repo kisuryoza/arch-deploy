@@ -78,6 +78,7 @@ PKG+=(pipewire-alsa pipewire-pulse pipewire-jack qjackctl)
 
 ##------------------------------- Multimedia related Utilities and Apps
 
+PKG+=(imv)              # Image viewer for Wayland and X11
 PKG+=(mpd mpc ncmpcpp)  # Music player daemon
 PKG+=(easyeffects)      # Audio Effects for Pipewire applications
 PKG+=(pamixer)          # Pulseaudio command-line mixer like amixer
@@ -132,12 +133,16 @@ PKG+=(bc)               # An arbitrary precision calculator language
 # PKG+=(tlp)              # Linux Advanced Power Management
 
 ################################################-- Themes, icons, fonts
+##------------------------------------------------------ Theme managing
 
-# Theme managing
 PKG+=(kvantum lxappearance-gtk3)
-# Themes and Icons
+
+##---------------------------------------------------- Themes and Icons
+
 PKG+=(python-pywal breeze-icons)
-# Fonts
+
+##--------------------------------------------------------------- Fonts
+
 PKG+=(ttf-dejavu)
 PKG+=(ttf-jetbrains-mono)
 PKG+=(ttf-jetbrains-mono-nerd)
@@ -150,10 +155,12 @@ PKG+=(unicode-emoji noto-fonts noto-fonts-cjk noto-fonts-emoji)
 
 ################################################################-- Apps
 
-PKG+=(libreoffice-fresh transmission-gtk)
-PKG+=(keepassxc)                    # Cross-platform community-driven port of Keepass password manager
-PKG+=(inkscape)                     # Professional vector graphics editor
-PKG+=(zathura zathura-djvu zathura-pdf-mupdf)    # Minimalistic document viewer
+PKG+=(libreoffice-fresh)
+PKG+=(qbittorrent)
+PKG+=(keepassxc)
+PKG+=(inkscape)
+PKG+=(gthumb)               # Image browser and viewer
+PKG+=(zathura zathura-djvu zathura-pdf-mupdf)
 fi
 
 # Wine

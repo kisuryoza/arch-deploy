@@ -23,6 +23,7 @@ PKG+=(exa bat procs dust ripgrep fd sd hyperfine)
 PKG+=(gdb python rustup sccache rsync)
 PKG+=(docker)
 PKG+=(gitui)        # terminal ui for git
+PKG+=(cocogitto)    # Set of CLI tools for the conventional commit and semver specifications
 PKG+=(task)         # A command-line todo list manager
 PKG+=(xplr)         # A hackable, minimal, fast TUI file explorer
 PKG+=(bubblewrap)   # Unprivileged sandboxing tool
@@ -79,6 +80,7 @@ PKG+=(pipewire-alsa pipewire-pulse pipewire-jack qjackctl)
 ##------------------------------- Multimedia related Utilities and Apps
 
 PKG+=(imv)              # Image viewer for Wayland and X11
+PKG+=(jpegoptim oxipng) # Compression tools
 PKG+=(mpd mpc ncmpcpp)  # Music player daemon
 PKG+=(easyeffects)      # Audio Effects for Pipewire applications
 PKG+=(pamixer)          # Pulseaudio command-line mixer like amixer

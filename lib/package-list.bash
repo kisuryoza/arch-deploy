@@ -20,7 +20,8 @@ PKG+=(exa bat procs dust ripgrep fd sd hyperfine)
 
 ##-------------------------------------------------------------- Others
 
-PKG+=(gdb python rustup sccache rsync)
+PKG+=(gdb clang python rustup sccache)
+PKG+=(rsync)
 PKG+=(docker)
 PKG+=(gitui)        # terminal ui for git
 PKG+=(cocogitto)    # Set of CLI tools for the conventional commit and semver specifications
@@ -60,7 +61,9 @@ fi
 if [[ "$DISPLAY_SERVER" == "Wayland" ]];
 then
     PKG+=(wlroots xorg-xwayland wl-clipboard)
-    PKG+=(xdg-desktop-portal-wlr)
+    PKG+=(hyprland)
+    PKG+=(xdg-desktop-portal-hyprland)
+    # PKG+=(xdg-desktop-portal-wlr)
     PKG+=(qt5-wayland qt6-wayland)
     PKG+=(sway)             # Tiling Wayland compositor (as a dependency)
     PKG+=(swayidle)         # Idle management daemon

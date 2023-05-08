@@ -74,7 +74,8 @@ bootloader-unified-kernel-image ()
         echo "ALL_kver=\"/boot/vmlinuz-linux\""
         echo "ALL_microcode=(/boot/*-ucode.img)"
 
-        echo "PRESETS=('default' 'fallback')"
+        echo "PRESETS=('default')"
+        # echo "PRESETS=('default' 'fallback')"
 
         echo "default_image=\"/boot/initramfs-linux.img\""
         echo "default_uki=\"$ESP/EFI/BOOT/bootx64.efi\""
@@ -91,16 +92,18 @@ bootloader-unified-kernel-image ()
     local uuid root_params
     uuid=$(blkid -s UUID -o value "$DRIVE$P2")
     root_params="root=UUID=$uuid"
-    [[ $ENABLE_FULL_DRIVE_ENCRYPTION ]] && root_params="cryptdevice=UUID=$uuid:root root=/dev/mapper/root"
+    if $ENABLE_FULL_DRIVE_ENCRYPTION; then
+        root_params="cryptdevice=UUID=$uuid:root root=/dev/mapper/root"
+    fi
 
     log "Applying kernel parameters"
     echo "$root_params rw bgrt_disable nowatchdog ${KERNEL_PARAMS[*]}" > /mnt/etc/kernel/cmdline
 
+    rm -rf /mnt/"${ESP:?}"/*
     mkdir -p /mnt/"$ESP"/EFI/Arch
     mkdir -p /mnt/"$ESP"/EFI/BOOT
 
     log "Starting mkinitcpio"
-    rm -rf /mnt/"${ESP:?}"/*
     arch-chroot /mnt mkinitcpio -p linux
 
     log "Creating UEFI boot entry"

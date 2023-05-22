@@ -40,7 +40,7 @@ IS_INSTALLING_FROM_EXISTING_ARCH=false
 # At the end of installation it will be used for cloning the provided repo
 # and installing its content through GNU util "stow"
 # If empty this will be ignored
-GITCLONE="https://github.com/justAlex0/dot-files"
+GITCLONE="https://github.com/kisuryoza/dot-files"
 
 ESP="/boot/efi"
 STAGE="fresh"

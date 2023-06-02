@@ -18,30 +18,40 @@ PKG+=(man-db man-pages texinfo)
 
 PKG+=(exa bat procs dust ripgrep fd sd hyperfine)
 
-##-------------------------------------------------------------- Others
+##--------------------------------------------------------- Development
 
 PKG+=(gdb clang python rustup sccache)
+PKG+=(meson ninja)  # build systems
+PKG+=(cppcheck ctags)
 PKG+=(rsync)
 PKG+=(docker)
 PKG+=(gitui)        # terminal ui for git
 PKG+=(cocogitto)    # Set of CLI tools for the conventional commit and semver specifications
+
+##----------------------------------------------------- System monitors
+
+PKG+=(sysstat)      # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
+PKG+=(acpi)         # Client for battery, power, and thermal readings
+PKG+=(btop)         # A monitor of system resources, bpytop ported to C++
+PKG+=(nvtop)        # GPUs process monitoring for AMD, Intel and NVIDIA
+
+##-------------------------------------------------------------- Others
+
+PKG+=(fzf)          # A command-line fuzzy finder
+PKG+=(pacman-contrib)   # various scripts to pacman
+PKG+=(pkgstats)     # Submit a list of installed packages to the Arch Linux project
 PKG+=(task)         # A command-line todo list manager
 PKG+=(xplr)         # A hackable, minimal, fast TUI file explorer
 PKG+=(bubblewrap)   # Unprivileged sandboxing tool
-PKG+=(meson ninja)  # build systems
 PKG+=(dos2unix)     # Text file format converter
 PKG+=(stow)         # Manage installation of multiple softwares in the same directory tree
 PKG+=(neofetch)     # system information tool
-PKG+=(btop)         # A monitor of system resources, bpytop ported to C++
-PKG+=(sysstat)      # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
 PKG+=(ntfs-3g)      # NTFS filesystem driver and utilities
 PKG+=(libqalculate) # Multi-purpose desktop calculator
 
 
 if [[ "$SETUP" == "full" ]];
 then
-    PKG+=(npm)
-    PKG+=(cppcheck ctags)
     PKG+=(xdg-desktop-portal)
     PKG+=(bemenu)           # Dynamic menu library and client program inspired by dmenu
 
@@ -87,7 +97,6 @@ PKG+=(jpegoptim oxipng) # Compression tools
 PKG+=(mpd mpc ncmpcpp)  # Music player daemon
 PKG+=(easyeffects)      # Audio Effects for Pipewire applications
 PKG+=(pamixer)          # Pulseaudio command-line mixer like amixer
-PKG+=(pavucontrol)      # PulseAudio Volume Control
 PKG+=(playerctl)        # mpris media player command-line controller
 PKG+=(mediainfo)        # Supplies technical and tag information about a video or audio file (CLI interface)
 PKG+=(soundconverter)   # A simple sound converter application for GNOME
@@ -100,6 +109,8 @@ PKG+=(songrec)          # An open-source, unofficial Shazam client for Linux
 
 PKG+=(openvpn dnscrypt-proxy dnsmasq openresolv tor)
 PKG+=(syncthing)    # file synchronization client/server application
+PKG+=(nm-connection-editor)    # NetworkManager GUI connection editor and widgets
+PKG+=(blueman)      # GTK+ Bluetooth Manager
 
 ##------------------------------------------------------- File managing
 
@@ -123,18 +134,12 @@ PKG+=(tesseract tesseract-data-eng tesseract-data-rus gimagereader-gtk)
 ##-------------------------------------------------------------- Others
 
 PKG+=(alacritty)        # terminal
-PKG+=(acpi)             # Client for battery, power, and thermal readings
-PKG+=(fzf)              # A command-line fuzzy finder
-PKG+=(pacman-contrib)   # various scripts to pacman
-PKG+=(sysstat)          # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
-PKG+=(pkgstats)         # Submit a list of installed packages to the Arch Linux project
 PKG+=(mate-polkit)      # graphical authentication agent
 PKG+=(dunst)            # Customizable and lightweight notification-daemon
 PKG+=(asp)              # for paru
 PKG+=(zerotier-one)     # Creates virtual Ethernet networks of almost unlimited size
 PKG+=(yt-dlp)
 PKG+=(qrencode)
-PKG+=(bc)               # An arbitrary precision calculator language
 # PKG+=(tlp)              # Linux Advanced Power Management
 
 ################################################-- Themes, icons, fonts

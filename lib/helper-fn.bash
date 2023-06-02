@@ -182,13 +182,11 @@ function check_gpu {
         [[ "$SETUP" == "full" ]] && PKG+=(linux-zen-headers)
         PKG+=(nvidia-dkms nvidia-utils nvidia-settings)
         PKG+=(vulkan-icd-loader)
-        PKG+=(nvtop)
         MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
         ;;
     *AMD* | *ATI*)
         PKG+=(xf86-video-ati libva-mesa-driver vulkan-radeon)
         PKG+=(vulkan-icd-loader)
-        PKG+=(nvtop)
         ;;
     *INTEL*)
         PKG+=(libva-intel-driver intel-media-driver vulkan-intel)

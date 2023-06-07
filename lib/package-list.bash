@@ -16,7 +16,7 @@ PKG+=(man-db man-pages texinfo)
 
 ##-------------------------------------------- Rust alternatives to gnu
 
-PKG+=(exa bat procs dust ripgrep fd sd hyperfine)
+PKG+=(uutils-coreutils exa bat procs dust ripgrep fd sd hyperfine)
 
 ##--------------------------------------------------------- Development
 
@@ -38,6 +38,7 @@ PKG+=(nvtop)        # GPUs process monitoring for AMD, Intel and NVIDIA
 
 ##-------------------------------------------------------------- Others
 
+PKG+=(btrfs-progs)  # Btrfs filesystem utilities
 PKG+=(fzf)          # A command-line fuzzy finder
 PKG+=(pacman-contrib)   # various scripts to pacman
 PKG+=(pkgstats)     # Submit a list of installed packages to the Arch Linux project

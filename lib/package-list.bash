@@ -6,8 +6,8 @@ PKG+=(base base-devel)
 
 ###########################################################-- Essential
 
-PKG+=(git networkmanager iwd iproute2 iptables-nft apparmor wget opendoas lz4)
-PKG+=(gvim fennel fnlfmt shfmt bash-language-server)
+PKG+=(git networkmanager iwd iproute2 iptables-nft wget)
+PKG+=(opendoas lz4 apparmor bind strace lsof)
 PKG+=(bash-completion zsh starship)
 
 ##---------------------------------------------------------------- Docs
@@ -27,6 +27,7 @@ PKG+=(rsync)
 PKG+=(docker)
 PKG+=(gitui)        # terminal ui for git
 PKG+=(cocogitto)    # Set of CLI tools for the conventional commit and semver specifications
+PKG+=(gvim fennel fnlfmt shfmt bash-language-server)
 
 ##----------------------------------------------------- System monitors
 

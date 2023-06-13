@@ -2,13 +2,13 @@
 
 PKG+=(linux linux-firmware)
 [[ "$SETUP" == "full" ]] && PKG+=(linux-zen)
-PKG+=(base base-devel)
+PKG+=(base base-devel arch-install-scripts)
 
 ###########################################################-- Essential
 
 PKG+=(git networkmanager iwd iproute2 iptables-nft wget)
 PKG+=(opendoas lz4 apparmor bind strace lsof)
-PKG+=(bash-completion zsh starship)
+PKG+=(zsh starship)
 
 ##---------------------------------------------------------------- Docs
 
@@ -27,7 +27,7 @@ PKG+=(rsync)
 PKG+=(docker)
 PKG+=(gitui)        # terminal ui for git
 PKG+=(cocogitto)    # Set of CLI tools for the conventional commit and semver specifications
-PKG+=(gvim fennel fnlfmt shfmt bash-language-server)
+PKG+=(gvim fennel fnlfmt shfmt)
 
 ##----------------------------------------------------- System monitors
 
@@ -176,6 +176,5 @@ PKG+=(zathura zathura-djvu zathura-pdf-mupdf)
 fi
 
 # Wine
-# pacman -S wine-staging winetricks
+# pacman -S wine-staging winetricks gamemode lib32-gamemode
 # pacman -S --asdeps --needed $(pacman -Si wine-staging | sed -n '/^Opt/,/^Conf/p' | sed '$d' | sed 's/^Opt.*://g' | sed 's/^\s*//g' | tr '\n' ' ')
-# pacman -S gamemode lib32-gamemode)

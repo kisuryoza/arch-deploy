@@ -21,7 +21,6 @@ Options:
                             default: UKI
     -s, --swap              Whether to use swap file
     -e, --encryption        Whether to use full drive encryption
-    -a, --archhost          Whether installing from arch host to use its package cache
 
 " "$SCRIPT_NAME"
     exit 0
@@ -101,9 +100,7 @@ function summary {
     echo "                    Timezone: [${YELLOW}${TIMEZONE}${ESC}]"
     echo "                  Mirrorlist: [${YELLOW}${MIRRORLIST}${ESC}]"
     echo "            Enable swap file: [${YELLOW}${ENABLE_SWAP_FILE}${ESC}]"
-    echo "              Swap file size: [${YELLOW}${SWAP_FILE_SIZE}${ESC}]"
     echo "Enable full drive encryption: [${YELLOW}${ENABLE_FULL_DRIVE_ENCRYPTION}${ESC}]"
-    echo "Is installing from arch host: [${YELLOW}${IS_INSTALLING_FROM_EXISTING_ARCH}${ESC}]"
     echo "         Repository to clone: [${YELLOW}${GITCLONE}${ESC}]"
 
     local answer

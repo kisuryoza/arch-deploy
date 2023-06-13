@@ -8,7 +8,7 @@ HOST_NAME="arch"
 
 # What group of packages to install
 # Options: minimal | full
-SETUP="minimal"
+SETUP="full"
 
 # What Display server and corresponding desktop utils to install
 # Only works if SETUP == "full"
@@ -27,20 +27,15 @@ TIMEZONE="Europe/Berlin"
 # Will be used by reflector
 MIRRORLIST="Germany,Netherlands,Poland"
 
-# Will create a swap file in the root directory
+# Will create a swap file as /swapfile with the size equal to the size of RAM
 ENABLE_SWAP_FILE=false
-SWAP_FILE_SIZE=16 # GiB
 
 # dm-crypt with LUKS
 ENABLE_FULL_DRIVE_ENCRYPTION=false
 
-# Will prefer package cache on the host
-IS_INSTALLING_FROM_EXISTING_ARCH=false
-
 # At the end of installation it will be used for cloning the provided repo
-# and installing its content through GNU util "stow"
 # If empty this will be ignored
-GITCLONE="https://github.com/kisuryoza/dot-files"
+GITCLONE="https://github.com/kisuryoza/dots"
 
 ESP="/boot/efi"
 STAGE="fresh"
@@ -53,7 +48,7 @@ SCRIPT_NAME=$(basename "$SCRIPT_PATH")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 
 readonly SCRIPT_PATH SCRIPT_NAME SCRIPT_DIR ESP
-declare -a PKG AUR_PKG MODULES KERNEL_PARAMS
+declare -a PKG MODULES HOOKS FILES KERNEL_PARAMS
 # }}}
 
 cd "$SCRIPT_DIR" || exit 1
@@ -61,42 +56,60 @@ source ./lib/helper-fn.bash
 source ./lib/bootloaders.bash
 source ./lib/partitioning.bash
 
+# {{{ install packages
+function install_packages {
+    log "Installing packages"
+
+    if ! pacstrap /mnt "${PKG[@]}"; then
+        log "Problems with ethernet connection." err
+        local answer
+        read -rp "Shall we resume downloading? y/n " answer
+        echo
+        if [[ "$answer" == "y" ]]; then
+            install_packages
+        fi
+    fi
+}
+# }}}
+
+# {{{ swap
 # References:
 # https://wiki.archlinux.org/title/Power_management/Suspend_and_hibernate
 function deploy_swap {
     trap "readonly STATUS_SWAP=error" ERR
+
     if $ENABLE_SWAP_FILE; then
         log "Creating a swap file"
 
-        dd if=/dev/zero of=/mnt/swapfile bs=1M count="$SWAP_FILE_SIZE"GiB status=progress
+        local swap_file_size
+        swap_file_size=$(awk -F: '/MemTotal/ {print $2}' /proc/meminfo | sed -E "s|[^0-9]||g")
+        dd if=/dev/zero of=/mnt/swapfile bs=1M count="$swap_file_size"kB status=progress
         arch-chroot /mnt chmod 0600 /swapfile
         arch-chroot /mnt mkswap -U clear /swapfile
-        # arch-chroot /mnt swapon /swapfile
-
+        HOOKS+=(resume)
         {
             echo -e "\n#Swapfile"
             echo "/swapfile none swap defaults 0 0"
         } >>/mnt/etc/fstab
-
-        sed -i "s|fsck|resume fsck|" /mnt/etc/mkinitcpio.conf
 
         # See the reference
         SWAP_DEVICE=$(findmnt -no UUID -T /mnt/swapfile)
         SWAP_FILE_OFFSET=$(filefrag -v /mnt/swapfile | awk '$1=="0:" {print substr($4, 1, length($4)-2)}')
         KERNEL_PARAMS+=(resume="$SWAP_DEVICE" resume_offset="$SWAP_FILE_OFFSET")
     fi
-
-    log "Generating fstab"
-    genfstab -U /mnt >/mnt/etc/fstab
 }
+# }}}
 
+# {{{ localtime
 function deploy_localtime {
     trap "readonly STATUS_LOCALTIME=error" ERR
     log "Configuring localtime"
     [[ -n "$TIMEZONE" ]] && arch-chroot /mnt ln -sf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime
     arch-chroot /mnt hwclock --systohc
 }
+# }}}
 
+# {{{ localization
 function deploy_localization {
     trap "readonly STATUS_LOCALIZATION=error" ERR
     log "Configuring localization"
@@ -107,7 +120,9 @@ function deploy_localization {
         echo "LC_ALL=en_US.UTF-8"
     } >/mnt/etc/locale.conf
 }
+# }}}
 
+# {{{ network
 # References:
 # https://bbs.archlinux.org/viewtopic.php?id=250604
 # https://wiki.archlinux.org/title/Iwd#No_DHCP_in_AP_mode
@@ -125,14 +140,18 @@ function deploy_network {
         arch-chroot /mnt systemctl enable nftables.service
     fi
 }
+# }}}
 
+# {{{ apparmor
 function deploy_apparmor {
     if [[ -x /mnt/usr/bin/aa-status ]]; then
         KERNEL_PARAMS+=(lsm=landlock,lockdown,yama,integrity,apparmor,bpf)
         arch-chroot /mnt systemctl enable apparmor.service
     fi
 }
+# }}}
 
+# {{{ users
 function deploy_users {
     trap "readonly STATUS_USERS=error" ERR
     log "Setting root password"
@@ -162,7 +181,9 @@ function deploy_users {
         sed -Ei "s|^#?%wheel ALL=(ALL:ALL) ALL|%wheel ALL=(ALL:ALL) ALL|" /mnt/etc/sudoers
     fi
 }
+# }}}
 
+# {{{ initramfs
 # References:
 # https://wiki.archlinux.org/title/improving_performance#Watchdogs
 function deploy_initramfs {
@@ -174,23 +195,26 @@ function deploy_initramfs {
         echo "# Do not load watchdogs module for increasing perfomance"
         echo "blacklist iTCO_wdt"
     } >/mnt/etc/modprobe.d/nowatchdog.conf
-    sed -Ei 's|^#?FILES=.*|FILES=(/etc/modprobe.d/nowatchdog.conf)|' /mnt/etc/mkinitcpio.conf
+    FILES+=(/etc/modprobe.d/nowatchdog.conf)
 
     if $ENABLE_FULL_DRIVE_ENCRYPTION; then
-        sed -i "s|filesystems|encrypt filesystems|" /mnt/etc/mkinitcpio.conf
+        HOOKS+=(encrypt)
         MODULES+=(dm_crypt)
     fi
 
     [[ -n "$MODULES" ]] && sed -Ei "s|^MODULES=.*|MODULES=(${MODULES[*]})|" /mnt/etc/mkinitcpio.conf
+    [[ -n "$FILES" ]] && sed -Ei "s|^FILES=.*|FILES=(${FILES[*]})|" /mnt/etc/mkinitcpio.conf
+    [[ -n "$HOOKS" ]] && sed -Ei "s|^HOOKS=.*|HOOKS=(${HOOKS[*]})|" /mnt/etc/mkinitcpio.conf
     if [[ -x /usr/bin/lz4 ]]; then
-        # because lz4 is faster
         sed -Ei "s|^#COMPRESSION=\"lz4\"|COMPRESSION=\"lz4\"|" /mnt/etc/mkinitcpio.conf
         sed -Ei "s|^#COMPRESSION_OPTIONS=.*|COMPRESSION_OPTIONS=(-9)|" /mnt/etc/mkinitcpio.conf
     fi
 
     arch-chroot /mnt mkinitcpio -p linux
 }
+# }}}
 
+# {{{ dotfiles
 function deploy_dotfiles {
     trap "readonly STATUS_DOTFILES=error" ERR
     if [[ -n "$GITCLONE" && -n "$USER" ]]; then
@@ -200,17 +224,21 @@ function deploy_dotfiles {
         arch-chroot /mnt chown "$USER":"$USER" -R "/home/$USER"
     fi
 }
+# }}}
 
+# {{{ unmount
 function deploy_unmount {
     log "Unmounting /mnt"
-    # [[ $ENABLE_SWAP_FILE ]] && swapoff /mnt/swapfile
-    umount -R /mnt || log "Error - Failed to umount /mnt" err
+    sleep 3
+    umount -lR /mnt || log "Error - Failed to umount /mnt" err
     if $ENABLE_FULL_DRIVE_ENCRYPTION; then
-        log "Closing the encrypted partition"
-        cryptsetup close root || log "Error - Failed to close the encrypted partition" err
+        # from here it refuses to close because "Device root is still in use."
+        log "Close encrypted partition with: cryptsetup close root" warn
     fi
 }
+# }}}
 
+# {{{ errors
 function check_errors {
     [[ "$STATUS_LOCALTIME" == "error" ]] && log "Errors acquired during Localtime configuration." err
     [[ "$STATUS_LOCALIZATION" == "error" ]] && log "Errors acquired during Localization configuration." err
@@ -221,6 +249,7 @@ function check_errors {
     [[ "$STATUS_DOTFILES" == "error" ]] && log "Errors acquired during Cloning dot-files." err
     [[ "$STATUS_BOOTLOADER" == "error" ]] && log "Errors acquired during Installation of the bootloader." err
 }
+# }}}
 
 function deploy_init {
     summary
@@ -240,34 +269,18 @@ function deploy_init {
         formatting
     fi
 
+    log "Generating fstab"
+    genfstab -U /mnt >/mnt/etc/fstab
+
     sed -Ei 's|^#?Color|Color|' /etc/pacman.conf
     sed -Ei "s|^#?ParallelDownloads.*|ParallelDownloads = 3|" /etc/pacman.conf
-    sed -zi 's|#\[multilib\]\n#Include = \/etc\/pacman.d\/mirrorlist|\[multilib\]\nInclude = \/etc\/pacman.d\/mirrorlist|' /etc/pacman.conf
 
     source ./lib/package-list.bash
     check_cpu
     [[ "$SETUP" == "full" ]] && check_gpu
-    if $IS_INSTALLING_FROM_EXISTING_ARCH; then
-        pacstrap -c /mnt "${PKG[@]}" || log "Problems with ethernet connection. Aborting." err 1
-    else
-        pacstrap /mnt "${PKG[@]}" || log "Problems with ethernet connection. Aborting." err 1
-    fi
+    install_packages
 
-    sed -Ei 's|^#?UseSyslog|UseSyslog|' /mnt/etc/pacman.conf
-    sed -Ei 's|^#?Color|Color|' /mnt/etc/pacman.conf
-    sed -Ei 's|^#?VerbosePkgLists|VerbosePkgLists|' /mnt/etc/pacman.conf
-    sed -Ei 's|^#?ParallelDownloads.*|ParallelDownloads = 3|' /mnt/etc/pacman.conf
-    sed -zi 's|#\[multilib\]\n#Include = \/etc\/pacman.d\/mirrorlist|\[multilib\]\nInclude = \/etc\/pacman.d\/mirrorlist|' /mnt/etc/pacman.conf
-
-    if [[ -x /mnt/usr/bin/zsh ]]; then
-        log "Making zsh the default shell"
-        arch-chroot chsh -s /usr/bin/zsh
-        arch-chroot chsh "$USER" -s /usr/bin/zsh
-        echo 'ZDOTDIR="$HOME"/.config/zsh' >>/mnt/etc/zsh/zshenv
-    fi
-
-    arch-chroot /mnt systemctl enable archlinux-keyring-wkd-sync.timer
-
+    source /mnt/etc/mkinitcpio.conf
     deploy_swap
     deploy_localtime
     deploy_localization
@@ -277,16 +290,30 @@ function deploy_init {
     deploy_initramfs
     deploy_bootloader
     deploy_dotfiles
-    deploy_unmount
+
+    sed -Ei 's|^#?UseSyslog|UseSyslog|' /mnt/etc/pacman.conf
+    sed -Ei 's|^#?Color|Color|' /mnt/etc/pacman.conf
+    sed -Ei 's|^#?VerbosePkgLists|VerbosePkgLists|' /mnt/etc/pacman.conf
+    sed -Ei 's|^#?ParallelDownloads.*|ParallelDownloads = 3|' /mnt/etc/pacman.conf
+    sed -zi 's|#\[multilib\]\n#Include = \/etc\/pacman.d\/mirrorlist|\[multilib\]\nInclude = \/etc\/pacman.d\/mirrorlist|' /mnt/etc/pacman.conf
+
+    arch-chroot /mnt systemctl enable archlinux-keyring-wkd-sync.timer
+
+    if [[ -x /mnt/usr/bin/zsh ]]; then
+        log "Making zsh the default shell"
+        arch-chroot /mnt chsh -s /usr/bin/zsh
+        arch-chroot /mnt chsh "$USER" -s /usr/bin/zsh
+        echo 'ZDOTDIR="$HOME"/.config/zsh' >>/mnt/etc/zsh/zshenv
+    fi
 
     check_errors
-
+    deploy_unmount
     log "Looks like everything is done." warn
 }
 
 # {{{ Option parser
-LONG_OPTS=help,stage:,user:,hostname:,setup:,display:,bootloader:,swap,encryption,archhost
-SHORT_OPTS=S:u:h:g:d:b:sea
+LONG_OPTS=help,stage:,user:,hostname:,setup:,display:,bootloader:,swap,encryption
+SHORT_OPTS=S:u:h:g:d:b:se
 PARSED=$(getopt --options ${SHORT_OPTS} \
     --longoptions ${LONG_OPTS} \
     --name "$0" \
@@ -330,10 +357,6 @@ while true; do
         ENABLE_FULL_DRIVE_ENCRYPTION=true
         shift
         ;;
-    -a | --archhost)
-        IS_INSTALLING_FROM_EXISTING_ARCH=true
-        shift
-        ;;
     --)
         shift
         break
@@ -367,3 +390,5 @@ case $STAGE in
     help
     ;;
 esac
+
+# vim: foldmethod=marker foldlevel=0 foldlevelstart=0

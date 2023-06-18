@@ -63,7 +63,7 @@ if [[ "$DISPLAY_SERVER" == "X" ]];
 then
     PKG+=(xorg-server xorg-xinit xclip)
     PKG+=(xdg-desktop-portal-gtk)
-    PKG+=(xautolock)        # An automatic X screen-locker/screen-saver
+    PKG+=(xss-lock i3lock)  # Screen locker
     PKG+=(picom)            # compositor
     PKG+=(bemenu-x11)       # X11 renderer for bemenu
     PKG+=(flameshot)        # screenshoter

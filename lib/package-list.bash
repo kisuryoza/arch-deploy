@@ -16,18 +16,19 @@ PKG+=(man-db man-pages texinfo)
 
 ##-------------------------------------------- Rust alternatives to gnu
 
-PKG+=(uutils-coreutils exa bat procs dust ripgrep fd sd hyperfine)
+PKG+=(uutils-coreutils exa bat procs dust ripgrep fd sd)
 
 ##--------------------------------------------------------- Development
 
+PKG+=(neovim gvim fennel fnlfmt shfmt)
 PKG+=(gdb clang python rustup sccache)
+PKG+=(cargo-asm cargo-audit cargo-bloat cargo-flamegraph cargo-generate cargo-watch)
+PKG+=(typescript typescript-language-server npm)
 PKG+=(meson ninja)  # build systems
 PKG+=(cppcheck ctags)
 PKG+=(rsync)
-PKG+=(docker)
-PKG+=(gitui)        # terminal ui for git
-PKG+=(cocogitto)    # Set of CLI tools for the conventional commit and semver specifications
-PKG+=(gvim fennel fnlfmt shfmt)
+PKG+=(docker docker-buildx)
+PKG+=(gitui difftastic cocogitto)
 
 ##----------------------------------------------------- System monitors
 
@@ -63,6 +64,7 @@ if [[ "$DISPLAY_SERVER" == "X" ]];
 then
     PKG+=(xorg-server xorg-xinit xclip)
     PKG+=(xdg-desktop-portal-gtk)
+    PKG+=(bspwm sxhkd xdo)
     PKG+=(xss-lock i3lock)  # Screen locker
     PKG+=(picom)            # compositor
     PKG+=(bemenu-x11)       # X11 renderer for bemenu

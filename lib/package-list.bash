@@ -16,13 +16,13 @@ PKG+=(man-db man-pages texinfo)
 
 ##-------------------------------------------- Rust alternatives to gnu
 
-PKG+=(uutils-coreutils exa bat procs dust ripgrep fd sd)
+PKG+=(uutils-coreutils eza bat procs dust ripgrep fd sd)
 
 ##--------------------------------------------------------- Development
 
-PKG+=(neovim gvim fennel fnlfmt shfmt)
+PKG+=(neovim gvim fennel fnlfmt shfmt bash-language-server)
 PKG+=(gdb clang python rustup sccache)
-PKG+=(cargo-asm cargo-audit cargo-bloat cargo-flamegraph cargo-generate cargo-watch)
+PKG+=(cargo-asm cargo-audit cargo-bloat cargo-flamegraph cargo-generate cargo-watch sqlx-cli)
 PKG+=(typescript typescript-language-server npm)
 PKG+=(meson ninja)  # build systems
 PKG+=(cppcheck ctags)
@@ -48,8 +48,6 @@ PKG+=(xplr)         # A hackable, minimal, fast TUI file explorer
 PKG+=(bubblewrap)   # Unprivileged sandboxing tool
 PKG+=(dos2unix)     # Text file format converter
 PKG+=(stow)         # Manage installation of multiple softwares in the same directory tree
-PKG+=(neofetch)     # system information tool
-PKG+=(ntfs-3g)      # NTFS filesystem driver and utilities
 PKG+=(libqalculate) # Multi-purpose desktop calculator
 
 

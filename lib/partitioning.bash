@@ -6,11 +6,11 @@ function partitioning {
     log "Clearing existing partition tables"
     sgdisk "$DRIVE" -Z
     if check_uefi; then
-        log "Partitioning 256M for EFI and the rest for Linux"
-        sgdisk "$DRIVE" --align-end --new=1:0:+256M --typecode=1:ef00 --largest-new=2
+        log "Partitioning 512M for EFI and the rest for Linux"
+        sgdisk "$DRIVE" --align-end --new=1:0:+512M --typecode=1:ef00 --largest-new=2
     else
-        log "Partitioning 256M for BIOS and the rest for Linux"
-        sgdisk "$DRIVE" --align-end --new=1:0:+256M --typecode=1:ef02 --largest-new=2
+        log "Partitioning 512M for BIOS and the rest for Linux"
+        sgdisk "$DRIVE" --align-end --new=1:0:+512M --typecode=1:ef02 --largest-new=2
     fi
     log "Partition table:"
     sgdisk "$DRIVE" -p

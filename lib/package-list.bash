@@ -8,7 +8,7 @@ PKG+=(base base-devel arch-install-scripts)
 
 PKG+=(git networkmanager iwd iproute2 iptables-nft wget)
 PKG+=(opendoas lz4 apparmor bind strace lsof)
-PKG+=(zsh starship)
+PKG+=(zsh starship atuin)
 
 ##---------------------------------------------------------------- Docs
 
@@ -35,12 +35,13 @@ PKG+=(gitui difftastic cocogitto)
 PKG+=(sysstat)      # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
 PKG+=(acpi)         # Client for battery, power, and thermal readings
 PKG+=(btop)         # A monitor of system resources, bpytop ported to C++
+PKG+=(bandwhich)    # Terminal bandwidth utilization tool
 PKG+=(nvtop)        # GPUs process monitoring for AMD, Intel and NVIDIA
 
 ##-------------------------------------------------------------- Others
 
 PKG+=(btrfs-progs)  # Btrfs filesystem utilities
-PKG+=(fzf)          # A command-line fuzzy finder
+PKG+=(fzf fzy)      # A command-line fuzzy finder
 PKG+=(pacman-contrib)   # various scripts to pacman
 PKG+=(pkgstats)     # Submit a list of installed packages to the Arch Linux project
 PKG+=(task)         # A command-line todo list manager
@@ -99,10 +100,11 @@ PKG+=(jpegoptim oxipng) # Compression tools
 PKG+=(mpd mpc ncmpcpp)  # Music player daemon
 PKG+=(easyeffects)      # Audio Effects for Pipewire applications
 PKG+=(pamixer)          # Pulseaudio command-line mixer like amixer
-PKG+=(playerctl)        # mpris media player command-line controller
+PKG+=(qpwgraph)         # PipeWire Graph Qt GUI Interface
+PKG+=(pavucontrol)      # PulseAudio Volume Control
 PKG+=(mediainfo)        # Supplies technical and tag information about a video or audio file (CLI interface)
 PKG+=(soundconverter)   # A simple sound converter application for GNOME
-PKG+=(mpv mpv-mpris)    # a free, open source, and cross-platform media player
+PKG+=(mpv)              # a free, open source, and cross-platform media player
 PKG+=(songrec)          # An open-source, unofficial Shazam client for Linux
 #PKG+=(lmms)             # The Linux MultiMedia Studio
 
@@ -121,9 +123,10 @@ PKG+=(thunar-volman thunar-archive-plugin thunar-media-tags-plugin ffmpegthumbna
 PKG+=(udiskie)      # Removable disk automounter using udisks
 PKG+=(fuseiso)      # FuseISO is a FUSE module to let unprivileged users mount ISO filesystem images
 PKG+=(gvfs-mtp)     # Virtual filesystem implementation
-PKG+=(file-roller)  # Create and modify archives
+PKG+=(xarchiver)    # Create and modify archives
 PKG+=(p7zip)        # 7z support
 PKG+=(handlr)       # Powerful alternative to xdg-utils (managing mime types)
+PKG+=(trash-cli)    # Command line trashcan (recycle bin) interface
 
 ##--------------------------------------------------- Language spelling
 
@@ -159,10 +162,10 @@ PKG+=(ttf-dejavu)
 PKG+=(ttf-jetbrains-mono)
 PKG+=(ttf-jetbrains-mono-nerd)
 PKG+=(ttf-liberation)       # Font family which aims at metric compatibility with Arial, Times New Roman, and Courier New
-PKG+=(ttc-iosevka-ss14)     # JetBrains Mono Style
-PKG+=(ttc-iosevka-aile)     # Sans style
-PKG+=(ttc-iosevka-etoile)   # Serif style
-PKG+=(ttf-iosevka-nerd)
+# PKG+=(ttc-iosevka-ss14)     # JetBrains Mono Style
+# PKG+=(ttc-iosevka-aile)     # Sans style
+# PKG+=(ttc-iosevka-etoile)   # Serif style
+# PKG+=(ttf-iosevka-nerd)
 PKG+=(unicode-emoji noto-fonts noto-fonts-cjk noto-fonts-emoji)
 
 ################################################################-- Apps

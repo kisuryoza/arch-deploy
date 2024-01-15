@@ -261,6 +261,16 @@ function deploy_init {
     timedatectl set-ntp true
 
     if $ENABLE_FULL_DRIVE_ENCRYPTION; then
+        if [[ "$DRIVE" == *"nvme"* ]]; then
+            # FIX: ugly and lazy workaround
+            log "According to https://wiki.archlinux.org/title/Solid_state_drive/Memory_cell_clearing#Sanitize_command"
+            log "On nvme device in order to prepare the drive before partition, before continuing one should do:"
+            log "# nvme sanitize /dev/nvme0 -a 0x04" warn
+            log "One can follow the progress with the Sanitize Log:"
+            log "# nvme sanitize-log /dev/nvme0" warn
+            log "When done the output will show 'Sanitize Status : 0x101'"
+            log "delete this on line 272" err 1
+        fi
         drive-preparation
         partitioning
         formatting-crypt

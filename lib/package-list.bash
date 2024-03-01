@@ -8,7 +8,7 @@ PKG+=(base base-devel arch-install-scripts)
 
 PKG+=(git networkmanager iwd iproute2 iptables-nft wget)
 PKG+=(opendoas lz4 apparmor bind strace lsof)
-PKG+=(zsh starship atuin)
+PKG+=(zsh fish starship atuin)
 
 ##---------------------------------------------------------------- Docs
 
@@ -23,12 +23,11 @@ PKG+=(uutils-coreutils eza bat procs dust ripgrep fd sd)
 PKG+=(neovim gvim fennel fnlfmt shfmt bash-language-server)
 PKG+=(gdb clang python rustup sccache)
 PKG+=(cargo-asm cargo-audit cargo-bloat cargo-flamegraph cargo-generate cargo-watch sqlx-cli)
-PKG+=(typescript typescript-language-server npm)
 PKG+=(meson ninja)  # build systems
 PKG+=(cppcheck ctags)
 PKG+=(rsync)
 PKG+=(docker docker-buildx)
-PKG+=(gitui difftastic cocogitto)
+PKG+=(gitui git-delta difftastic)
 
 ##----------------------------------------------------- System monitors
 
@@ -40,11 +39,14 @@ PKG+=(nvtop)        # GPUs process monitoring for AMD, Intel and NVIDIA
 
 ##-------------------------------------------------------------- Others
 
-PKG+=(btrfs-progs)  # Btrfs filesystem utilities
+PKG+=(earlyoom)     # Early OOM Daemon for Linux
+PKG+=(tmux)         # Terminal multiplexer
+PKG+=(hyperfine)    # A command-line benchmarking tool
 PKG+=(fzf fzy)      # A command-line fuzzy finder
+PKG+=(btrfs-progs)  # Btrfs filesystem utilities
 PKG+=(pacman-contrib)   # various scripts to pacman
 PKG+=(pkgstats)     # Submit a list of installed packages to the Arch Linux project
-PKG+=(task)         # A command-line todo list manager
+PKG+=(task taskwarrior-tui) # A command-line todo list manager
 PKG+=(xplr)         # A hackable, minimal, fast TUI file explorer
 PKG+=(bubblewrap)   # Unprivileged sandboxing tool
 PKG+=(dos2unix)     # Text file format converter
@@ -56,6 +58,7 @@ if [[ "$SETUP" == "full" ]];
 then
     PKG+=(xdg-desktop-portal)
     PKG+=(bemenu)           # Dynamic menu library and client program inspired by dmenu
+    PKG+=(glfw)             # A free, open source, portable framework for graphical application development
 
 #####################################################-- Display servers
 
@@ -74,7 +77,7 @@ fi
 if [[ "$DISPLAY_SERVER" == "Wayland" ]];
 then
     PKG+=(wlroots xorg-xwayland wl-clipboard)
-    PKG+=(hyprland)
+    PKG+=(hyprland hyprpaper)
     PKG+=(xdg-desktop-portal-hyprland)
     # PKG+=(xdg-desktop-portal-wlr)
     PKG+=(qt5-wayland qt6-wayland)
@@ -85,7 +88,6 @@ then
     PKG+=(bemenu-wayland)   # Wayland (wlroots-based compositors) renderer for bemenu
     PKG+=(grim slurp)       # screenshoter
     PKG+=(gtk-layer-shell)  # For EWW
-    PKG+=(glfw-wayland)     # GLFW library
 fi
 
 ################################################-- Multimedia framework
@@ -99,19 +101,19 @@ PKG+=(imv)              # Image viewer for Wayland and X11
 PKG+=(jpegoptim oxipng) # Compression tools
 PKG+=(mpd mpc ncmpcpp)  # Music player daemon
 PKG+=(easyeffects)      # Audio Effects for Pipewire applications
-PKG+=(pamixer)          # Pulseaudio command-line mixer like amixer
+PKG+=(pamixer)          # Pulseaudio command-line mixer
 PKG+=(qpwgraph)         # PipeWire Graph Qt GUI Interface
 PKG+=(pavucontrol)      # PulseAudio Volume Control
 PKG+=(mediainfo)        # Supplies technical and tag information about a video or audio file (CLI interface)
-PKG+=(soundconverter)   # A simple sound converter application for GNOME
 PKG+=(mpv)              # a free, open source, and cross-platform media player
 PKG+=(songrec)          # An open-source, unofficial Shazam client for Linux
-#PKG+=(lmms)             # The Linux MultiMedia Studio
+# PKG+=(soundconverter)   # A simple sound converter application for GNOME
+# PKG+=(lmms)             # The Linux MultiMedia Studio
 
 #############################################-- Miscellaneous utilities
 ##------------------------------------------------------ Ethernet stuff
 
-PKG+=(openvpn dnscrypt-proxy dnsmasq openresolv tor)
+PKG+=(openvpn dnscrypt-proxy dnsmasq openresolv)
 PKG+=(syncthing)    # file synchronization client/server application
 PKG+=(nm-connection-editor)    # NetworkManager GUI connection editor and widgets
 PKG+=(blueman)      # GTK+ Bluetooth Manager
@@ -141,20 +143,16 @@ PKG+=(tesseract tesseract-data-eng tesseract-data-rus gimagereader-gtk)
 PKG+=(alacritty)        # terminal
 PKG+=(mate-polkit)      # graphical authentication agent
 PKG+=(dunst)            # Customizable and lightweight notification-daemon
-PKG+=(asp)              # for paru
 PKG+=(zerotier-one)     # Creates virtual Ethernet networks of almost unlimited size
 PKG+=(yt-dlp)
 PKG+=(qrencode)
-# PKG+=(tlp)              # Linux Advanced Power Management
+PKG+=(tlp)              # Linux Advanced Power Management
 
 ################################################-- Themes, icons, fonts
-##------------------------------------------------------ Theme managing
+##--------------------------------------------------------------- Theme
 
 PKG+=(kvantum lxappearance-gtk3)
-
-##---------------------------------------------------- Themes and Icons
-
-PKG+=(python-pywal breeze-icons)
+PKG+=(breeze-icons)
 
 ##--------------------------------------------------------------- Fonts
 
@@ -173,7 +171,6 @@ PKG+=(unicode-emoji noto-fonts noto-fonts-cjk noto-fonts-emoji)
 PKG+=(libreoffice-fresh)
 PKG+=(qbittorrent)
 PKG+=(keepassxc)
-PKG+=(inkscape)
 PKG+=(gthumb)               # Image browser and viewer
 PKG+=(zathura zathura-djvu zathura-pdf-mupdf)
 fi

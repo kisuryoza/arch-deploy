@@ -16,7 +16,7 @@ PKG+=(man-db man-pages texinfo)
 
 ##-------------------------------------------- Rust alternatives to gnu
 
-PKG+=(uutils-coreutils eza bat procs dust ripgrep fd sd)
+PKG+=(uutils-coreutils eza bat procs dust ripgrep fd sd hyperfine)
 
 ##--------------------------------------------------------- Development
 
@@ -32,6 +32,7 @@ PKG+=(gitui git-delta difftastic)
 ##----------------------------------------------------- System monitors
 
 PKG+=(sysstat)      # a collection of performance monitoring tools (iostat,isag,mpstat,pidstat,sadf,sar)
+PKG+=(smartmontools) # Control and monitor S.M.A.R.T. enabled ATA and SCSI Hard Drives
 PKG+=(acpi)         # Client for battery, power, and thermal readings
 PKG+=(btop)         # A monitor of system resources, bpytop ported to C++
 PKG+=(bandwhich)    # Terminal bandwidth utilization tool
@@ -41,7 +42,6 @@ PKG+=(nvtop)        # GPUs process monitoring for AMD, Intel and NVIDIA
 
 PKG+=(earlyoom)     # Early OOM Daemon for Linux
 PKG+=(tmux)         # Terminal multiplexer
-PKG+=(hyperfine)    # A command-line benchmarking tool
 PKG+=(fzf fzy)      # A command-line fuzzy finder
 PKG+=(btrfs-progs)  # Btrfs filesystem utilities
 PKG+=(pacman-contrib)   # various scripts to pacman
@@ -52,6 +52,7 @@ PKG+=(bubblewrap)   # Unprivileged sandboxing tool
 PKG+=(dos2unix)     # Text file format converter
 PKG+=(stow)         # Manage installation of multiple softwares in the same directory tree
 PKG+=(libqalculate) # Multi-purpose desktop calculator
+PKG+=(cronie)
 
 
 if [[ "$SETUP" == "full" ]];
@@ -126,7 +127,6 @@ PKG+=(udiskie)      # Removable disk automounter using udisks
 PKG+=(fuseiso)      # FuseISO is a FUSE module to let unprivileged users mount ISO filesystem images
 PKG+=(gvfs-mtp)     # Virtual filesystem implementation
 PKG+=(xarchiver)    # Create and modify archives
-PKG+=(p7zip)        # 7z support
 PKG+=(handlr)       # Powerful alternative to xdg-utils (managing mime types)
 PKG+=(trash-cli)    # Command line trashcan (recycle bin) interface
 

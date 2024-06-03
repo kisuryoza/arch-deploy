@@ -176,7 +176,6 @@ function check_gpu {
     case ${GRAPHICS^^} in
     *NVIDIA*)
         PKG+=(linux-headers)
-        [[ "$SETUP" == "full" ]] && PKG+=(linux-zen-headers)
         PKG+=(nvidia-dkms nvidia-utils nvidia-settings)
         PKG+=(vulkan-icd-loader)
         MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)

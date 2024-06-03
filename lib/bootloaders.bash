@@ -84,9 +84,9 @@ bootloader-unified-kernel-image ()
         # echo "fallback_options=\"-S autodetect\""
     } > /mnt/etc/mkinitcpio.d/linux.preset
 
-    log "Creating linux-zen preset for mkinitcpio"
-    cp -f /mnt/etc/mkinitcpio.d/linux.preset /mnt/etc/mkinitcpio.d/linux-zen.preset
-    sed -i "s|linux|linux-zen|" /mnt/etc/mkinitcpio.d/linux-zen.preset
+    # log "Creating linux-zen preset for mkinitcpio"
+    # cp -f /mnt/etc/mkinitcpio.d/linux.preset /mnt/etc/mkinitcpio.d/linux-zen.preset
+    # sed -i "s|linux|linux-zen|" /mnt/etc/mkinitcpio.d/linux-zen.preset
 
     local uuid root_params
     uuid=$(blkid -s UUID -o value "$DRIVE$P2")

@@ -8,7 +8,7 @@ HOST_NAME="arch"
 
 # What group of packages to install
 # Options: minimal | full
-SETUP="full"
+SETUP="minimal"
 
 # What Display server and corresponding desktop utils to install
 # Only works if SETUP == "full"
